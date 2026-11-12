@@ -1,0 +1,806 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SiloGest — Manejo de granos almacenados en silos</title>
+<meta name="description" content="Simulador 3D de manejo de granos almacenados en silos: aireación, psicrometría, respiración, plagas, puntos calientes y micotoxinas. Programa de Ingeniería Agroindustrial, Universidad Surcolombiana.">
+<meta name="theme-color" content="#F6F3EC">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,500;8..60,600;8..60,700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{--vino:#6D1B2B;--vino-dark:#4E121E;--vino-soft:rgba(109,27,43,.08);--ocre:#B9862E;--ocre-dark:#8F6620;--ocre-soft:rgba(185,134,46,.12);--paper:#F6F3EC;--paper2:#EFE9DC;--card:#FFFFFF;--ink:#2A2521;--ink-dim:#71695E;--ink-faint:#A69C8C;--line:#DCD3BF;--error:#A6332B;--ok:#4B7A52;--radius:10px;
+--font-display:'Source Serif 4',Georgia,serif;--font-body:'Inter',system-ui,-apple-system,sans-serif;--font-mono:'JetBrains Mono','SF Mono',Menlo,Consolas,monospace}
+*{box-sizing:border-box}html,body{margin:0;padding:0}
+body{background:var(--paper);color:var(--ink);font-family:var(--font-body);min-height:100vh;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1480px;margin:0 auto;padding:0 18px}
+/* membrete */
+.letterhead{background:var(--card);border-bottom:3px solid var(--vino);box-shadow:0 2px 0 var(--ocre)}
+.letterhead-top{display:flex;align-items:center;gap:12px;padding:14px 0 10px;border-bottom:1px solid var(--line)}
+.seal{width:46px;height:46px;flex:0 0 auto;object-fit:contain}
+.inst-name{font-family:var(--font-display);font-weight:600;font-size:14.5px;letter-spacing:.01em;color:var(--vino);line-height:1.25}
+.inst-sub{font-size:11.5px;color:var(--ink-dim);margin-top:1px}
+.letterhead-course{padding:11px 0 12px;display:flex;flex-wrap:wrap;align-items:flex-end;gap:6px 18px}
+.course-eyebrow{font-family:var(--font-mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--ocre-dark);margin-bottom:3px}
+.course-title{font-family:var(--font-display);font-weight:700;font-size:22px;color:var(--ink);margin:0 0 6px;line-height:1.15;border-bottom:2px solid var(--ocre);display:inline-block;padding-bottom:4px}
+.docente-line{font-size:12.5px;color:var(--ink-dim)}.docente-line b{color:var(--ink);font-weight:600}
+.app-badge{display:inline-flex;align-items:center;gap:6px;font-family:var(--font-mono);font-size:10.5px;letter-spacing:.06em;color:var(--vino);background:var(--vino-soft);border:1px solid var(--vino);border-radius:20px;padding:3px 10px}
+.hdr-right{margin-left:auto;display:flex;gap:8px;align-items:center}
+.btn{font-family:var(--font-body);font-size:12.5px;border-radius:20px;padding:6px 13px;cursor:pointer;border:1px solid var(--vino);background:var(--vino);color:#fff;font-weight:600}
+.btn.sec{background:var(--card);color:var(--vino)}
+.btn.ocre{background:var(--ocre);border-color:var(--ocre-dark)}
+/* layout */
+.app{display:grid;grid-template-columns:minmax(0,1fr) 420px;gap:14px;padding:14px 0 10px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius)}
+#viewCard{position:relative;height:min(68vh,720px);min-height:420px;overflow:hidden;border-radius:var(--radius)}
+#gl{display:block;width:100%;height:100%;touch-action:none;cursor:grab}
+.ov{position:absolute;display:flex;gap:5px;flex-wrap:wrap;z-index:3}
+#ovLayer{left:10px;top:10px;right:10px}
+#ovTool{left:10px;bottom:10px;max-width:calc(100% - 230px)}
+#ovCam{right:10px;top:48px;flex-direction:column;align-items:flex-end}
+.chip{font-family:var(--font-body);font-size:12px;background:rgba(255,255,255,.92);border:1px solid var(--line);color:var(--ink);border-radius:16px;padding:4px 10px;cursor:pointer;user-select:none;white-space:nowrap}
+.chip.on{background:var(--vino);border-color:var(--vino);color:#fff}
+.chip.t.on{background:var(--ocre);border-color:var(--ocre-dark)}
+.lbl{position:absolute;z-index:2;font-family:var(--font-mono);font-size:10.5px;pointer-events:none;background:rgba(255,255,255,.82);border-radius:3px;padding:0 3px;transform:translate(6px,-50%);color:#222;white-space:nowrap}
+.lbl.hot{background:#a6332b;color:#fff}
+.lbl.big{font-family:var(--font-body);font-size:11.5px;background:rgba(42,37,33,.78);color:#fff;padding:2px 6px}
+#legend{position:absolute;right:10px;bottom:10px;z-index:3;background:rgba(255,255,255,.93);border:1px solid var(--line);border-radius:8px;padding:6px 9px;font-size:11px;min-width:200px}
+#legend canvas{display:block;width:190px;height:10px;margin:4px 0 2px;border-radius:2px}
+#legend .lr{display:flex;justify-content:space-between;gap:6px;font-family:var(--font-mono);font-size:10.5px}
+#clockOv{position:absolute;left:12px;top:48px;z-index:3;font-family:var(--font-mono);font-size:11.5px;color:#fff;background:rgba(42,37,33,.66);border-radius:6px;padding:4px 8px;line-height:1.5}
+#tip{position:absolute;z-index:6;pointer-events:none;background:rgba(42,37,33,.95);color:#fff;font-size:12px;padding:7px 9px;border-radius:7px;display:none;line-height:1.5;max-width:300px}
+#tip b{color:#f0d79c}
+#playbar{display:flex;align-items:center;gap:8px;padding:9px 12px;flex-wrap:wrap;margin-top:10px}
+#playbar select{font-family:var(--font-body);font-size:12.5px;padding:5px;border:1px solid var(--line);border-radius:8px;background:var(--card)}
+#status{font-family:var(--font-mono);font-size:11.5px;color:var(--ink-dim)}
+#chartCard{height:210px;position:relative;margin-top:10px}
+#chart{width:100%;height:100%;display:block}
+#chartSel{position:absolute;right:8px;top:6px;font-size:11.5px;border:1px solid var(--line);border-radius:6px;background:#fff}
+/* panel */
+#right{display:flex;flex-direction:column;max-height:calc(68vh + 470px);min-height:0}
+#tabs{display:flex;flex-wrap:wrap;gap:4px;padding:10px 10px 0}
+#tabs button{font-family:var(--font-body);font-size:12px;border:1px solid var(--line);background:var(--paper);color:var(--ink);border-radius:16px;padding:5px 10px;cursor:pointer}
+#tabs button.on{background:var(--vino);border-color:var(--vino);color:#fff}
+#panel{overflow:auto;padding:4px 14px 18px;flex:1}
+.sec h3{font-family:var(--font-display);font-size:15.5px;color:var(--vino);margin:16px 0 6px;font-weight:600}
+.sec h4{font-family:var(--font-mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--ocre-dark);margin:14px 0 4px}
+.row{display:grid;grid-template-columns:150px 1fr 64px;align-items:center;gap:6px;margin:6px 0;font-size:12.5px}
+.row input[type=range]{width:100%;accent-color:var(--vino)}
+.row output{text-align:right;font-family:var(--font-mono);font-size:11.5px;font-weight:600}
+.row select{grid-column:2/4;width:100%;padding:4px;border:1px solid var(--line);border-radius:6px;font-family:var(--font-body);font-size:12.5px;background:#fff}
+.note{font-size:11.5px;color:var(--ink-dim);line-height:1.45;margin:6px 0}
+.kv{display:grid;grid-template-columns:1fr auto;gap:3px 10px;font-size:12.5px}.kv b{font-family:var(--font-mono);font-size:11.5px;text-align:right}
+.kpis{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.kpi{border:1px solid var(--line);border-radius:8px;padding:6px 8px;background:var(--paper)}
+.kpi .l{font-size:10.5px;color:var(--ink-dim)}.kpi .v{font-family:var(--font-mono);font-size:15px;font-weight:700}.kpi .v small{font-size:10px;font-weight:500;color:var(--ink-dim)}
+.alert{border-left:4px solid var(--ocre);background:var(--ocre-soft);padding:6px 8px;margin:5px 0;font-size:12px;border-radius:4px;line-height:1.4}
+.alert.bad{border-color:var(--error);background:rgba(166,51,43,.08)}.alert.ok{border-color:var(--ok);background:rgba(75,122,82,.08)}
+.calc{font-size:12.5px;line-height:1.5}
+.eq{font-family:var(--font-display);background:var(--paper);border:1px solid var(--line);border-radius:6px;padding:6px 8px;margin:4px 0;font-size:13.5px}
+.res{color:var(--vino);font-weight:700}
+.scen{border:1px solid var(--line);border-left:4px solid var(--ocre);border-radius:8px;padding:8px 10px;margin:7px 0;cursor:pointer;background:var(--card)}
+.scen:hover{border-color:var(--vino);border-left-color:var(--vino)}
+.scen b{font-family:var(--font-display);color:var(--vino);font-size:14px}.scen p{margin:4px 0 0;font-size:12px;color:var(--ink-dim)}
+.lot{display:grid;grid-template-columns:60px 1fr 1fr;gap:6px;align-items:center;font-size:12px;margin:5px 0}
+.lot input{width:100%;accent-color:var(--ocre)}
+.lot span{font-family:var(--font-mono);font-size:11px}
+.sample{border:1px dashed var(--ocre-dark);background:var(--ocre-soft);border-radius:8px;padding:8px 10px;font-size:12px;margin:6px 0;line-height:1.5}
+footer{border-top:1px solid var(--line);margin-top:6px;padding:10px 0 18px;font-size:11.5px;color:var(--ink-dim);display:flex;flex-wrap:wrap;gap:6px 18px;justify-content:space-between}
+footer .ver{font-family:var(--font-mono);color:var(--vino)}
+#loading{position:absolute;inset:0;display:grid;place-items:center;background:var(--paper2);z-index:9;font-family:var(--font-display);color:var(--vino);font-size:16px}
+@media (max-width:1050px){.app{grid-template-columns:1fr}#right{max-height:none}#viewCard{height:62vh}.row{grid-template-columns:130px 1fr 58px}#ovTool{max-width:calc(100% - 20px);bottom:62px}#legend{min-width:0}#legend canvas{width:130px}}
+@media (max-width:560px){#ovCam{top:44px;left:10px;right:10px;flex-direction:row;flex-wrap:nowrap;overflow-x:auto}#clockOv{top:84px;bottom:auto;font-size:10px}#legend{top:84px;bottom:auto;padding:4px 6px;min-width:0;max-width:46%}#legend canvas{width:110px}#ovTool{bottom:10px}.course-title{font-size:18px}.chip{font-size:11px;padding:3px 8px}#ovLayer{flex-wrap:nowrap;overflow-x:auto}#ovTool{flex-wrap:nowrap;overflow-x:auto}}
+</style>
+</head>
+<body>
+<div class="letterhead"><div class="wrap">
+ <div class="letterhead-top">
+  <img class="seal" src="data:image/png;base64,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" alt="Escudo Universidad Surcolombiana">
+  <div><div class="inst-name">UNIVERSIDAD SURCOLOMBIANA</div><div class="inst-sub">Facultad de Ingeniería · Programa de Ingeniería Agroindustrial</div></div>
+ </div>
+ <div class="letterhead-course">
+  <div>
+   <div class="course-eyebrow">Herramienta de apoyo académico</div>
+   <h1 class="course-title">Almacenamiento de Productos Biológicos</h1>
+   <div class="docente-line">Docente: <b>D. Sc. Jaime Daniel Bustos Vanegas</b></div>
+  </div>
+  <div class="hdr-right"><span class="app-badge"><b>SiloGest</b> · Manejo de granos almacenados en silos</span><button class="btn sec" id="btnInstall" style="display:none">Instalar</button></div>
+ </div>
+</div></div>
+
+<div class="wrap">
+ <div class="app">
+  <div>
+   <div id="viewCard" class="card">
+    <canvas id="gl"></canvas>
+    <div id="loading">Construyendo el silo…</div>
+    <div class="ov" id="ovLayer"></div>
+    <div id="clockOv"></div>
+    <div class="ov" id="ovCam"></div>
+    <div class="ov" id="ovTool"></div>
+    <div id="legend"><div id="legT"></div><canvas id="legC" width="190" height="10"></canvas><div class="lr"><span id="legMin"></span><span id="legMid"></span><span id="legMax"></span></div></div>
+    <div id="labels"></div>
+    <div id="tip"></div>
+   </div>
+   <div id="playbar" class="card">
+    <button class="btn" id="bPlay">▶ Simular</button>
+    <button class="btn sec" id="bStep">+1 día</button>
+    <button class="btn sec" id="bReset">Reiniciar</button>
+    <label style="font-size:12.5px">Velocidad <select id="speed"><option value="1">1 h/s</option><option value="6">6 h/s</option><option value="24" selected>1 día/s</option><option value="72">3 días/s</option><option value="168">1 semana/s</option></select></label>
+    <span id="status"></span>
+   </div>
+   <div id="chartCard" class="card"><canvas id="chart"></canvas>
+    <select id="chartSel"><option value="T">Temperaturas</option><option value="M">Humedad y pérdida de MS</option><option value="C">CO₂ en el espacio de cabeza</option><option value="I">Insectos</option><option value="F">Ventilador y energía</option></select></div>
+  </div>
+  <div id="right" class="card"><div id="tabs"></div><div id="panel"></div></div>
+ </div>
+ <footer><span><b>SiloGest</b> — Manejo de granos almacenados en silos · Programa de Ingeniería Agroindustrial, Universidad Surcolombiana</span><span>Docente: D. Sc. Jaime Daniel Bustos Vanegas · © 2026 Universidad Surcolombiana · <span class="ver" id="ver"></span></span></footer>
+</div>
+
+<script src="three.min.js"></script>
+<script>
+"use strict";
+const APP_VERSION="2026-11-11-a";
+/* =====================================================================
+   1. DATOS DE GRANOS, PLAGAS, TOXINAS Y CLIMA
+   EMC: Chung-Pfost modificada  HRE = exp(-A/(T+C)·exp(-B·X)), X dec. b.s. (ASABE D245.6)
+   Resistencia al aire: Shedd (ASAE D272) ΔP/L = a·u²/ln(1+b·u)
+   ===================================================================== */
+const GR={
+ maiz:{n:"Maíz amarillo",rho:720,por:.40,rep:27,mu:.37,c0:1.465,c1:.0356,k:.16,A:312.40,B:16.958,C:30.205,a:2.07e4,b:30.4,Ms:13,M0:15,plaga:"sito",tox:["afla","fum"],col:[.93,.72,.22],shape:"maiz",src:"EMC: ASABE D245.6 · Shedd: ASAE D272"},
+ arroz:{n:"Arroz paddy",rho:580,por:.50,rep:36,mu:.45,c0:1.109,c1:.0448,k:.12,A:594.61,B:21.732,C:35.703,a:2.57e4,b:13.2,Ms:13,M0:14,plaga:"rhyz",tox:["afla"],col:[.86,.73,.45],shape:"arroz",src:"EMC: ASABE D245.6 · Shedd: ASAE D272"},
+ trigo:{n:"Trigo",rho:770,por:.41,rep:28,mu:.35,c0:1.096,c1:.0409,k:.14,A:529.43,B:17.609,C:50.998,a:2.70e4,b:8.77,Ms:13,M0:12.5,plaga:"rhyz",tox:["ota","don"],col:[.80,.58,.32],shape:"trigo",src:"EMC: ASABE D245.6 · Shedd: ASAE D272"},
+ sorgo:{n:"Sorgo",rho:740,por:.38,rep:30,mu:.35,c0:1.390,c1:.0322,k:.13,A:1099.67,B:19.644,C:102.849,a:2.12e4,b:8.06,Ms:13,M0:13.5,plaga:"sito",tox:["afla","fum"],col:[.72,.40,.24],shape:"soya",src:"EMC: ASABE D245.6 · Shedd: ASAE D272"},
+ soya:{n:"Soya",rho:740,por:.36,rep:25,mu:.30,c0:1.637,c1:.0185,k:.12,A:116.6,B:12.666,C:30,a:1.02e4,b:16.0,Ms:12,M0:12,plaga:"trib",tox:["afla"],col:[.90,.80,.56],shape:"soya",src:"EMC: ajuste docente aproximado · Shedd: ASAE D272"},
+ cebada:{n:"Cebada",rho:620,por:.47,rep:28,mu:.35,c0:1.300,c1:.0400,k:.13,A:381.2,B:15.153,C:50,a:2.14e4,b:13.2,Ms:13,M0:13,plaga:"rhyz",tox:["ota","don"],col:[.86,.74,.48],shape:"arroz",src:"EMC: ajuste docente aproximado · Shedd: ASAE D272"},
+ frijol:{n:"Fríjol rojo",rho:780,por:.40,rep:25,mu:.30,c0:1.500,c1:.0300,k:.13,A:401.6,B:15.496,C:50,a:2.0e4,b:60,Ms:14,M0:14,plaga:"acan",tox:["afla"],col:[.62,.20,.20],shape:"frijol",src:"EMC y Shedd: ajuste docente aproximado"},
+ cafe:{n:"Café pergamino seco",rho:400,por:.55,rep:32,mu:.40,c0:1.300,c1:.0350,k:.10,A:224.7,B:15.059,C:40,a:1.0e4,b:40,Ms:11,M0:11.5,plaga:"arae",tox:["ota"],col:[.90,.84,.66],shape:"cafe",src:"EMC y Shedd: ajuste docente aproximado (verificar con datos Cenicafé)"}
+};
+const PL={
+ sito:{n:"Sitophilus zeamais / S. oryzae (gorgojo del maíz y del arroz)",Tlo:15,Top:29,Thi:36,Mlo:10.5,r:.10,col:0x3a2414},
+ rhyz:{n:"Rhyzopertha dominica (taladrador menor de los granos)",Tlo:20,Top:33,Thi:38.5,Mlo:9,r:.09,col:0x4a2a16},
+ trib:{n:"Tribolium castaneum (gorgojo rojo de la harina)",Tlo:20,Top:33,Thi:39,Mlo:9,r:.08,col:0x6b2a12},
+ acan:{n:"Acanthoscelides obtectus (gorgojo del fríjol)",Tlo:16,Top:28,Thi:35,Mlo:10,r:.07,col:0x5a4a3a},
+ arae:{n:"Araecerus fasciculatus (gorgojo del café)",Tlo:18,Top:27,Thi:34,Mlo:11.5,r:.06,col:0x4b3a2a}
+};
+const TOX={afla:{n:"Aflatoxinas (Aspergillus flavus)",aw:.83,T1:22,T2:38},fum:{n:"Fumonisinas (Fusarium verticillioides)",aw:.90,T1:15,T2:32},ota:{n:"Ocratoxina A (A. ochraceus, A. carbonarius, P. verrucosum)",aw:.80,T1:12,T2:37},don:{n:"Deoxinivalenol (Fusarium graminearum)",aw:.90,T1:15,T2:30}};
+const FUNG={baja:{n:"Baja (grano limpio, cosecha seca)",f:1},media:{n:"Media (cosecha con lluvias)",f:1.8},alta:{n:"Alta (grano con daño, demoras de secado)",f:3.5}};
+const CLIM={
+ neiva:{n:"Neiva (Huila) · 442 m",Tm:28.0,Ta:5.5,RH:62,alt:442,rain:.25},
+ campo:{n:"Campoalegre (Huila) · 525 m",Tm:27.0,Ta:5.0,RH:68,alt:525,rain:.30},
+ pital:{n:"Pitalito (Huila) · 1318 m",Tm:19.8,Ta:5.5,RH:80,alt:1318,rain:.45},
+ espinal:{n:"Espinal (Tolima) · 323 m",Tm:27.8,Ta:5.5,RH:67,alt:323,rain:.30},
+ villav:{n:"Villavicencio (Meta) · 467 m",Tm:26.0,Ta:4.5,RH:80,alt:467,rain:.50},
+ bogota:{n:"Sabana de Bogotá · 2600 m",Tm:14.0,Ta:6.0,RH:78,alt:2600,rain:.40},
+ bvent:{n:"Buenaventura (puerto) · 7 m",Tm:26.2,Ta:3.0,RH:88,alt:7,rain:.75},
+ custom:{n:"Personalizado",Tm:25,Ta:5,RH:70,alt:500,rain:.3}
+};
+/* =====================================================================
+   2. PSICROMETRÍA, EQUILIBRIO Y DETERIORO
+   ===================================================================== */
+const psat=T=>611.21*Math.exp((18.678-T/234.5)*(T/(257.14+T)));
+let PATM=101325;
+const Wof=(T,RH)=>{const pv=RH*psat(T);return .622*pv/(PATM-pv)};
+const RHof=(T,w)=>Math.min(1,(w*PATM/(.622+w))/psat(T));
+const hof=(T,w)=>1.006*T+w*(2501+1.86*T);
+function Tdew(w){const pv=Math.max(1,w*PATM/(.622+w));let lo=-30,hi=70;for(let i=0;i<40;i++){const m=(lo+hi)/2;if(psat(m)>pv)hi=m;else lo=m}return(lo+hi)/2}
+const rhoAir=(T,w)=>(PATM-w*PATM/(.622+w))/(287.05*(T+273.15))*(1+w);
+function ERH(g,T,Mwb){Mwb=Math.max(1,Math.min(45,Mwb||1));const X=Mwb/(100-Mwb);return Math.min(.999,Math.exp(-g.A/(T+g.C)*Math.exp(-g.B*X)))}
+function EMC(g,T,RH){RH=Math.min(.995,Math.max(.02,RH));const X=-Math.log(-(T+g.C)*Math.log(RH)/g.A)/g.B;return Math.max(1,X/(1+X)*100)}
+const cpG=(g,M)=>g.c0+g.c1*M;
+function MT0(T,M){let v=32.3*Math.exp(-.1044*T-1.856);if(T>15.6&&M>19)v+=(M-19)/100*Math.exp(.0183*T-.2847);return v}
+function MT(T,M){return T<=35?MT0(T,M):MT0(35,M)*Math.exp((T-35)/6)} // extensión docente: >35 °C la actividad fúngica declina
+function MM(M){const Md=Math.max(5,M/(100-M)*100);return .103*(Math.exp(455/Math.pow(Md,1.53))-.00845*Md+1.558)}
+const MD=d=>2.08*Math.exp(-.0239*d);
+const CO2=th=>1.3*(Math.exp(.006*th)-1)+.015*th;
+function thFor(c){let lo=0,hi=2e4;for(let i=0;i<60;i++){const m=(lo+hi)/2;if(CO2(m)>c)hi=m;else lo=m}return lo}
+const TH05=thFor(5/.682);
+function shelfDays(g,T,M,dmg){const aw=ERH(g,T,M);const Mc=EMC(GR.maiz,T,aw);return TH05*MT(T,Mc)*MM(Mc)*MD(dmg)/24/FUNG[S.fung].f}
+/* =====================================================================
+   3. ESTADO
+   ===================================================================== */
+const S={grain:"maiz",D:11,Hw:16,fill:.86,peak:false,spreader:true,fines:2,dmg:30,het:.8,
+ lots:[{M:15,T:30},{M:15,T:30},{M:15,T:30}],
+ fung:"baja",pest:"sito",infLoc:"none",infDen:2,
+ leak:false,leakRate:20,sunW:true,floorBlock:0,pack:1.5,
+ aer:{mode:"off",Qt:.10,duct:"piso",dT:4,tol:1.0,h1:20,h2:6,chT:16,chRH:.65,eta:.55,price:850},
+ clim:{id:"neiva",Tm:28,Ta:5.5,RH:62,alt:442,noise:true,rain:.25},
+ view:"real",tool:"insp",rad:1.0,showAir:true,cut:true};
+let G=null,SIM={t:0,run:false,hist:[],fanOn:false,fanH:0,kWh:0,cond:0,leakL:0,lastNat:-99,seed:7,co2:420,samples:[]};
+function rnd(){SIM.seed=(SIM.seed*16807)%2147483647;return(SIM.seed-1)/2147483646}
+const FLOOR=.55; // altura del piso perforado (plenum debajo)
+/* =====================================================================
+   4. GRILLA (corte vertical por el diámetro)
+   ===================================================================== */
+function geom(){const g=GR[S.grain];const R=S.D/2,A=Math.PI*R*R;const Hf=S.fill*S.Hw;const hc=S.peak?R*Math.tan(g.rep*Math.PI/180):0;
+ const V=A*Hf+A*hc/3;const Vcap=A*S.Hw+A*R*Math.tan(g.rep*Math.PI/180)/3;return{R,A,Hf,hc,V,mass:V*g.rho/1000,cap:Vcap*g.rho/1000,Hdom:Hf+hc,Heq:V/A}}
+function build(){
+ const g=GR[S.grain];const ge=geom();PATM=101325*Math.pow(1-2.25577e-5*S.clim.alt,5.25588);
+ const NX=40;const NZ=Math.max(12,Math.min(84,Math.round(NX*ge.Hdom/S.D)));const dx=S.D/NX,dz=ge.Hdom/NZ;const n=NX*NZ;
+ const o={NX,NZ,dx,dz,n,G:new Uint8Array(n),T:new Float32Array(n),X:new Float32Array(n),N:new Float32Array(n),TH:new Float32Array(n),DM:new Float32Array(n),dmg:new Float32Array(n),
+  km:new Float32Array(n),rA:new Float32Array(n),mi:new Float32Array(n),P:new Float32Array(n),Pn:new Float32Array(n),Kc:new Float32Array(n),ux:new Float32Array(n),uz:new Float32Array(n),
+  Fx:new Float32Array((NX+1)*NZ),Fz:new Float32Array(NX*(NZ+1)),Fxn:new Float32Array((NX+1)*NZ),Fzn:new Float32Array(NX*(NZ+1)),inlet:new Uint8Array(NX),sens:[],pS:0};
+ for(let j=0;j<NZ;j++)for(let i=0;i<NX;i++){const x=(i+.5)*dx-ge.R,z=(j+.5)*dz;const top=ge.Hf+ge.hc*(1-Math.abs(x)/ge.R);const c=j*NX+i;
+  if(z<top){o.G[c]=1;const li=Math.min(2,Math.floor(z/ge.Hf*3));const L=S.lots[li];
+   const hn=S.het*(.6*Math.sin(z*1.15+1.3)*Math.cos(x*.55+.4)+.4*Math.sin(x*.9-z*.75+2.1));const Mi=Math.max(6,L.M+hn);
+   o.T[c]=L.T;o.X[c]=Mi/(100-Mi);o.dmg[c]=Math.max(0,S.dmg*(1+.6*hn/Math.max(.1,S.het)));o.km[c]=1;
+   if(!S.spreader&&Math.abs(x)<.13*S.D){o.km[c]=1/(1+.35*S.fines);o.dmg[c]+=2*S.fines}
+   const d=S.infDen;if(S.infLoc==="sup"&&z>top-1.5)o.N[c]=d;if(S.infLoc==="fondo"&&z<1.0)o.N[c]=d*2;if(S.infLoc==="lote")o.N[c]=d*.25}}
+ const sx=[-.35,0,.3];for(const f of sx)o.sens.push(Math.round((f+.5)*NX-.5));
+ G=o;setInlet();solveForced();solveNatural();
+}
+function setInlet(){const d=S.aer.duct,NX=G.NX;for(let i=0;i<NX;i++){const x=((i+.5)/NX-.5);let v=d==="piso"?1:d==="central"?(Math.abs(x)<.1?1:0):(Math.abs(Math.abs(x)-.3)<.07?1:0);
+  if(d==="piso"&&i<Math.round(S.floorBlock*NX))v=0;G.inlet[i]=v}}
+/* =====================================================================
+   5. FLUJO DE AIRE: Darcy no lineal (Shedd) + convección natural — SOR
+   ===================================================================== */
+const Kof=(g,u)=>{u=Math.max(1e-5,u);return Math.log(1+g.b*u)/(g.a*u)/S.pack};
+function sor(P,Kc,mode,iters,bT){const{NX,NZ,dx,dz,G:M}=G;const w=1.85;
+ for(let it=0;it<iters;it++)for(let j=0;j<NZ;j++)for(let i=0;i<NX;i++){const c=j*NX+i;if(!M[c])continue;const K=Kc[c];let sC=0,sP=0;
+  if(i>0){const n=c-1;if(M[n]){const Cf=2*K*Kc[n]/(K+Kc[n])*dz/dx;sC+=Cf;sP+=Cf*P[n]}else sC+=2*K*dz/dx}
+  if(i<NX-1){const n=c+1;if(M[n]){const Cf=2*K*Kc[n]/(K+Kc[n])*dz/dx;sC+=Cf;sP+=Cf*P[n]}else sC+=2*K*dz/dx}
+  if(j>0){const n=c-NX;const Cf=2*K*Kc[n]/(K+Kc[n])*dx/dz;sC+=Cf;sP+=Cf*P[n];if(bT)sP+=Cf*dz*.5*(bT[c]+bT[n])}
+  else if(mode===1&&G.inlet[i]){const Cf=2*K*dx/dz;sC+=Cf;sP+=Cf}
+  const up=j<NZ-1?c+NX:-1;
+  if(up>=0&&M[up]){const Cf=2*K*Kc[up]/(K+Kc[up])*dx/dz;sC+=Cf;sP+=Cf*P[up];if(bT)sP-=Cf*dz*.5*(bT[c]+bT[up])}
+  else{const Cf=2*K*dx/dz;sC+=Cf;if(bT)sP-=Cf*dz*.5*bT[c]}
+  if(sC>0)P[c]=(1-w)*P[c]+w*sP/sC}}
+function fluxes(P,Kc,mode,Fx,Fz,sc,bT){const{NX,NZ,dx,dz,G:M}=G;Fx.fill(0);Fz.fill(0);let Qin=0;
+ for(let j=0;j<NZ;j++)for(let i=0;i<NX;i++){const c=j*NX+i;if(!M[c])continue;const K=Kc[c];
+  if(i<NX-1){const n=c+1;if(M[n])Fx[j*(NX+1)+i+1]=2*K*Kc[n]/(K+Kc[n])*dz*(P[c]-P[n])/dx*sc;else Fx[j*(NX+1)+i+1]=2*K*dz*P[c]/dx*sc}
+  if(i>0&&!M[c-1])Fx[j*(NX+1)+i]=-2*K*dz*P[c]/dx*sc;
+  const up=j<NZ-1?c+NX:-1;
+  if(up>=0&&M[up]){const Kf=2*K*Kc[up]/(K+Kc[up]);let f=Kf*dx*(P[c]-P[up])/dz;if(bT)f+=Kf*dx*.5*(bT[c]+bT[up]);Fz[(j+1)*NX+i]=f*sc}
+  else{let f=2*K*dx*P[c]/dz;if(bT)f+=2*K*dx*.5*bT[c];Fz[(j+1)*NX+i]=f*sc}
+  if(j===0&&mode===1&&G.inlet[i]){const f=2*K*dx*(1-P[c])/dz*sc;Fz[i]=f;Qin+=f}}
+ return Qin}
+function cellVel(){const{NX,NZ,dx,dz,G:M}=G;const fan=SIM.fanOn?1:0;
+ for(let j=0;j<NZ;j++)for(let i=0;i<NX;i++){const c=j*NX+i;if(!M[c]){G.ux[c]=G.uz[c]=0;continue}
+  const a=G.Fx[j*(NX+1)+i]*fan+G.Fxn[j*(NX+1)+i],b=G.Fx[j*(NX+1)+i+1]*fan+G.Fxn[j*(NX+1)+i+1],cc=G.Fz[j*NX+i]*fan+G.Fzn[j*NX+i],d=G.Fz[(j+1)*NX+i]*fan+G.Fzn[(j+1)*NX+i];
+  G.ux[c]=.5*(a+b)/dz;G.uz[c]=.5*(cc+d)/dx}}
+function solveForced(){const g=GR[S.grain],ge=geom();const u0=S.aer.Qt*ge.mass/60/ge.A;
+ for(let c=0;c<G.n;c++)G.Kc[c]=Kof(g,u0)*G.km[c];G.P.fill(.5);let sc=1;
+ for(let o=0;o<5;o++){sor(G.P,G.Kc,1,o?120:260,null);const Q1=fluxes(G.P,G.Kc,1,G.Fx,G.Fz,1,null);sc=u0*S.D/Math.max(1e-12,Q1);fluxes(G.P,G.Kc,1,G.Fx,G.Fz,sc,null);
+  for(let j=0;j<G.NZ;j++)for(let i=0;i<G.NX;i++){const c=j*G.NX+i;if(!G.G[c])continue;const ux=.5*(G.Fx[j*(G.NX+1)+i]+G.Fx[j*(G.NX+1)+i+1])/G.dz,uz=.5*(G.Fz[j*G.NX+i]+G.Fz[(j+1)*G.NX+i])/G.dx;G.Kc[c]=Kof(g,Math.hypot(ux,uz))*G.km[c]}}
+ G.pS=sc;G.u0=u0;G.Qm3s=S.aer.Qt*ge.mass/60;cellVel()}
+function solveNatural(){const g=GR[S.grain];const{n}=G;const K0=g.b/g.a/S.pack*.3;const b=new Float32Array(n);let Tr=0,c0=0;
+ for(let c=0;c<n;c++)if(G.G[c]){Tr+=G.T[c];c0++}Tr/=Math.max(1,c0);const beta=1/(Tr+273.15);
+ for(let c=0;c<n;c++){b[c]=G.G[c]?1.13*9.81*beta*(G.T[c]-Tr):0;G.Kc[c]=K0*G.km[c]}
+ sor(G.Pn,G.Kc,0,60,b);fluxes(G.Pn,G.Kc,0,G.Fxn,G.Fzn,1,b);const u0=G.u0||.01;for(let c=0;c<n;c++)G.Kc[c]=Kof(g,u0)*G.km[c];cellVel();SIM.lastNat=SIM.t}
+/* =====================================================================
+   6. CLIMA (día tipo con razón de humedad casi constante, lluvias de tarde)
+   ===================================================================== */
+function hash(a){const s=Math.sin(a*12.9898)*43758.5453;return s-Math.floor(s)}
+function weather(t){const c=S.clim;const hr=t%24,day=Math.floor(t/24);
+ const dn=c.noise?(hash(day)-.5)*2.4:0,dw=c.noise?(hash(day+77.7)-.5)*.0016:0;
+ const rainDay=c.noise&&hash(day*3.1+5)<c.rain;const rain=rainDay&&hr>=14&&hr<18;
+ let T=c.Tm+dn+c.Ta*Math.cos((hr-14.5)/24*2*Math.PI);let w=Math.max(.002,Wof(c.Tm,c.RH/100)+dw);
+ if(rain){T-=3.5;w=Math.max(w,Wof(T,.95))}
+ const RH=Math.min(.99,RHof(T,w));const I=rain?60:Math.max(0,Math.sin((hr-6)/12*Math.PI))*820*(c.noise?(.75+.25*Math.cos(day*1.7)):1)*(rainDay?.6:1);
+ return{T,w:Math.min(w,Wof(T,.99)),RH,I,hr,day,rain,rainDay}}
+/* =====================================================================
+   7. PASO DE SIMULACIÓN
+   ===================================================================== */
+function fanDecision(wx,Tg,Mg){const a=S.aer,g=GR[S.grain];
+ switch(a.mode){case"off":return false;case"cont":return true;
+  case"night":return a.h1>a.h2?(wx.hr>=a.h1||wx.hr<a.h2):(wx.hr>=a.h1&&wx.hr<a.h2);
+  case"thermo":return wx.T<Tg-a.dT;
+  case"emc":return wx.T<Tg-a.dT&&EMC(g,wx.T,wx.RH)<=Mg+a.tol&&!wx.rain;
+  case"chill":{if(SIM.chOn&&Tg<=a.chT+2)SIM.chOn=false;else if(!SIM.chOn&&Tg>=a.chT+4)SIM.chOn=true;return!!SIM.chOn}}return false}
+function xMax(g,T){const e=EMC(g,Math.max(0,Math.min(70,T)),.97);return e/(100-e)}
+const plenumLoss=()=>S.aer.duct==="piso"?150:S.aer.duct==="central"?350:300;
+function step(dtH){
+ const g=GR[S.grain],pl=PL[S.pest],ff=FUNG[S.fung].f;const{NX,NZ,dx,dz,n,G:M}=G;const dt=dtH*3600;const wx=weather(SIM.t);
+ let sT=0,sX=0,cnt=0;for(let c=0;c<n;c++)if(M[c]){sT+=G.T[c];sX+=G.X[c];cnt++}const Tg=sT/cnt,Mg=(sX/cnt)/(1+sX/cnt)*100;
+ const was=SIM.fanOn;SIM.fanOn=fanDecision(wx,Tg,Mg);if(was!==SIM.fanOn)cellVel();if(SIM.t-SIM.lastNat>=6)solveNatural();
+ let Tin=wx.T,win=wx.w;const ra=rhoAir(wx.T,wx.w);const dPtot=G.pS+plenumLoss();
+ if(SIM.fanOn){if(S.aer.mode==="chill"){Tin=S.aer.chT;win=Math.min(wx.w,Wof(S.aer.chT,S.aer.chRH))}
+  Tin+=dPtot/(ra*1006)/S.aer.eta*.9;const Pf=G.Qm3s*dPtot/S.aer.eta/1000;let Pc=0;if(S.aer.mode==="chill")Pc=G.Qm3s*ra*Math.max(0,hof(wx.T,wx.w)-hof(S.aer.chT,win))/3;
+  SIM.kWh+=(Pf+Pc)*dtH;SIM.fanH+=dtH;SIM.Pnow=Pf+Pc}else SIM.Pnow=0;
+ const Ths=wx.T+(S.sunW?.6*wx.I/17*.55:0);SIM.Ths=Ths;
+ const Te=G._Te||(G._Te=new Float32Array(n)),We=G._We||(G._We=new Float32Array(n)),Tn=G._Tn||(G._Tn=new Float32Array(n));
+ for(let c=0;c<n;c++)if(M[c]){const T=G.T[c],Mw=G.X[c]/(1+G.X[c])*100;Te[c]=T;We[c]=Math.min(Wof(T,ERH(g,T,Mw)),Wof(T,.999))}
+ const fan=SIM.fanOn?1:0,rb=g.rho;let hsF=0,hsW=0,co2r=0;Tn.set(G.T);
+ for(let j=0;j<NZ;j++)for(let i=0;i<NX;i++){const c=j*NX+i;if(!M[c])continue;let Fin=0,sTi=0,sWi=0;const add=(F,Tx,Wx)=>{if(F>0){Fin+=F;sTi+=F*Tx;sWi+=F*Wx}};
+  const fl=G.Fx[j*(NX+1)+i]*fan+G.Fxn[j*(NX+1)+i];if(fl>0){if(i>0&&M[c-1])add(fl,Te[c-1],We[c-1]);else add(fl,Ths,wx.w)}
+  const fr=G.Fx[j*(NX+1)+i+1]*fan+G.Fxn[j*(NX+1)+i+1];if(fr<0){if(i<NX-1&&M[c+1])add(-fr,Te[c+1],We[c+1]);else add(-fr,Ths,wx.w)}else if(i===NX-1||!M[c+1]){hsF+=fr;hsW+=fr*We[c]}
+  if(fl<0&&(i===0||!M[c-1])){hsF+=-fl;hsW+=-fl*We[c]}
+  const fb=G.Fz[j*NX+i]*fan+G.Fzn[j*NX+i];if(fb>0){if(j>0)add(fb,Te[c-NX],We[c-NX]);else add(fb,Tin,win)}
+  const ft=G.Fz[(j+1)*NX+i]*fan+G.Fzn[(j+1)*NX+i];const upG=j<NZ-1&&M[c+NX];if(ft<0){if(upG)add(-ft,Te[c+NX],We[c+NX]);else add(-ft,Ths,wx.w)}else if(!upG){hsF+=ft;hsW+=ft*We[c]}
+  let T=G.T[c],X=G.X[c];const mg=rb*dx*dz,mdm=mg/(1+X);
+  if(Fin>0){const Ti=sTi/Fin,Wi=sWi/Fin,ma=1.13*Fin*dt;const ns=Math.max(1,Math.ceil(ma/(mg*cpG(g,X/(1+X)*100))/.35));const mas=ma/ns;
+   const e0=EMC(g,Ti,RHof(Ti,Wi))/100,Xeq=e0/(1-e0);
+   for(let s=0;s<ns;s++){const Mw=X/(1+X)*100,cg=cpG(g,Mw);const wo=Math.min(Wof(T,ERH(g,T,Mw)),Wof(T,.999));let dW=mas*(Wi-wo);
+    let Xn=X+dW/mdm;if((dW>0&&Xn>Xeq&&X<Xeq)||(dW<0&&Xn<Xeq&&X>Xeq)){Xn=Xeq;dW=(Xn-X)*mdm}
+    if(dW>0&&X>=Xeq)dW*=.5;if(dW<0&&X<=Xeq)dW*=.5;Xn=X+dW/mdm;const xm=xMax(g,T);if(Xn>xm){Xn=Math.max(X,xm);dW=(Xn-X)*mdm}
+    T+=(mas*(1.006+1.86*Wi)*(Ti-T)+(2501-2.36*T)*dW)/(mg*cg);X=Xn}}
+  // respiración (Thompson; maíz equivalente por aw; carga fúngica acorta el tiempo)
+  const Mw=X/(1+X)*100,aw=ERH(g,T,Mw),Mc=Math.min(35,EMC(GR.maiz,T,aw));
+  const f=MT(T,Mc)*MM(Mc)*MD(G.dmg[c])/ff;const th0=G.TH[c],th1=th0+dtH/f;G.TH[c]=th1;let dco2=CO2(th1)-CO2(th0);
+  let dDM=.682*dco2/1000;if(G.DM[c]>.12)dDM=0;G.DM[c]+=dDM;dco2=dDM/.682*1000;co2r+=dco2/(1+X)*mg; // g CO2 por m de ancho
+  const cg=cpG(g,Mw);T+=dco2*10.61/(1+X)/cg;X=Math.min(xMax(g,T),X+.6*dDM);
+  // insectos
+  let N=G.N[c];if(N>0){let fT=0;if(T>pl.Tlo&&T<pl.Thi)fT=T<pl.Top?(T-pl.Tlo)/(pl.Top-pl.Tlo):(pl.Thi-T)/(pl.Thi-pl.Top);
+   const fM=Math.max(0,Math.min(1,(Mw-pl.Mlo)/3));const mort=T<pl.Tlo-3?.02:T>42?.5:T>=pl.Thi?.05:.004;
+   N=Math.max(0,N+N*(pl.r*fT*fM*(1-N/3000)-mort)*dtH/24);G.N[c]=N;const q=N*7e-6*dt/1000;T+=q/cg;X+=q*1000*3.8e-8*1.5*(1+X);G.dmg[c]=Math.min(80,G.dmg[c]+N*1e-4*dtH/24)}
+  // micotoxinas y ácaros (índices: horas en condición favorable)
+  let rk=0;for(const k of g.tox){const tx=TOX[k];if(aw>=tx.aw&&T>=tx.T1&&T<=tx.T2)rk+=(aw-tx.aw+.03)*30*ff}G.rA[c]+=rk*dtH;
+  if(aw>=.70&&T>=5&&T<=32)G.mi[c]+=(aw-.70)*10*dtH;
+  Tn[c]=Math.max(-5,Math.min(75,T));G.X[c]=Math.max(.02,Math.min(xMax(g,T),X))}
+ // conducción e intercambio con pared, piso y techo
+ const k=g.k,Uw=4,Us=3,Uf=1,Tsun=S.sunW?.6*wx.I/17:0;const eF=Math.max(0,Math.cos((wx.hr-9)/12*Math.PI)),wF=Math.max(0,Math.cos((wx.hr-15)/12*Math.PI));const Twe=wx.T+Tsun*eF*.8,Tww=wx.T+Tsun*wF*.8;
+ for(let j=0;j<NZ;j++)for(let i=0;i<NX;i++){const c=j*NX+i;if(!M[c])continue;const Cc=rb*dx*dz*cpG(g,G.X[c]/(1+G.X[c])*100)*1000;let q=0;
+  if(i<NX-1&&M[c+1])q+=k*dz/dx*(G.T[c+1]-G.T[c]);if(i>0&&M[c-1])q+=k*dz/dx*(G.T[c-1]-G.T[c]);
+  if(j<NZ-1&&M[c+NX])q+=k*dx/dz*(G.T[c+NX]-G.T[c]);else q+=Us*dx*(Ths-G.T[c]);
+  if(j>0)q+=k*dx/dz*(G.T[c-NX]-G.T[c]);else q+=Uf*dx*(S.clim.Tm-G.T[c]);
+  if(i===0)q+=Uw*dz*(Twe-G.T[c]);if(i===NX-1)q+=Uw*dz*(Tww-G.T[c]);
+  if(i>0&&!M[c-1])q+=Us*dz*(Ths-G.T[c]);if(i<NX-1&&!M[c+1])q+=Us*dz*(Ths-G.T[c]);Tn[c]+=q*dt/Cc}
+ G.T.set(Tn);
+ // migración de insectos hacia zonas con temperatura óptima
+ const Nn=G._Nn||(G._Nn=new Float32Array(n));Nn.set(G.N);const mob=Math.min(.5,.04*dtH);const pref=T=>Math.exp(-Math.pow((T-pl.Top)/5,2))+.02;
+ for(let c=0;c<n;c++){if(!M[c]||G.N[c]<.01)continue;const i=c%NX;const nb=[];if(i>0&&M[c-1])nb.push(c-1);if(i<NX-1&&M[c+1])nb.push(c+1);if(c-NX>=0&&M[c-NX])nb.push(c-NX);if(c+NX<n&&M[c+NX])nb.push(c+NX);
+  const p0=pref(G.T[c]);let sp=p0;for(const q of nb)sp+=pref(G.T[q]);const mv=G.N[c]*mob;Nn[c]+=mv*p0/sp-mv;for(const q of nb)Nn[q]+=mv*pref(G.T[q])/sp}
+ G.N.set(Nn);
+ // condensación bajo el techo
+ const ge=geom();const Troof=wx.I<5?wx.T-3:Ths;let sw=0,sc=0;for(let i=0;i<NX;i++)for(let j=NZ-1;j>=0;j--){const c=j*NX+i;if(M[c]){sw+=We[c];sc++;break}}
+ const whs=fan?Math.max(hsF>0?hsW/hsF:0,wx.w):((sw/Math.max(1,sc))*.6+wx.w*.4);SIM.whs=whs;SIM.Troof=Troof;SIM.condNow=false;const wsR=Wof(Troof,1);
+ const drip=(kg,x0,x1)=>{const mPer=kg/(ge.A*Math.max(.02,(x1-x0)));for(let i=Math.round(NX*x0);i<Math.round(NX*x1);i++)for(let j=NZ-1;j>=0;j--){const c=j*NX+i;if(M[c]){G.X[c]=Math.min(xMax(g,G.T[c]),G.X[c]+mPer/(rb*dz/(1+G.X[c])));break}}};
+ if(whs>wsR){const kg=.0004*1.13*(whs-wsR)*ge.A*dt;SIM.cond+=kg;SIM.condNow=true;drip(kg,.3,.7)}
+ // filtración de agua por la escotilla en horas de lluvia
+ SIM.leakNow=false;if(S.leak&&wx.rain){const kg=S.leakRate/4*dtH;SIM.leakL+=kg;SIM.leakNow=true;drip(kg,.6,.68)}
+ // CO2 en el espacio de cabeza
+ const rate=co2r*ge.A/S.D/dtH; // g/h aproximado (escala de 2D a 3D por área)
+ const Vhs=ge.A*Math.max(.5,S.Hw-ge.Hf)+ge.A*S.D/2*Math.tan(25*Math.PI/180)/3;const Qv=fan?G.Qm3s*3600:Vhs*1.0;SIM.co2=420+rate/Math.max(1,Qv)/1.8e-3;
+ SIM.t+=dtH;SIM.wx=wx}
+/* =====================================================================
+   8. INDICADORES Y ALERTAS
+   ===================================================================== */
+function stats(){const g=GR[S.grain],{n,G:M}=G;let sT=0,mx=-99,mn=99,sX=0,sD=0,cnt=0,risk=0,dm05=0,Ni=0,Nmx=0,Mmx=0,mit=0;
+ for(let c=0;c<n;c++)if(M[c]){cnt++;const T=G.T[c];sT+=T;if(T>mx)mx=T;if(T<mn)mn=T;const Mw=G.X[c]/(1+G.X[c])*100;sX+=Mw;if(Mw>Mmx)Mmx=Mw;sD+=G.DM[c];if(G.DM[c]>.005)dm05++;if(G.rA[c]>48)risk++;if(G.mi[c]>24)mit++;Ni+=G.N[c];if(G.N[c]>Nmx)Nmx=G.N[c]}
+ const ge=geom();const Tm=sT/cnt,Mm=sX/cnt;return{Tm,Tmax:mx,Tmin:mn,Mm,Mmax:Mmx,DML:sD/cnt*100,f05:dm05/cnt*100,risk:risk/cnt*100,mites:mit/cnt*100,Nkg:Ni/cnt,Nmax:Nmx,Ntot:Ni/cnt*ge.mass*1000,aw:ERH(g,Tm,Mm)}}
+function record(){const s=stats(),wx=SIM.wx||weather(SIM.t);SIM.hist.push({t:SIM.t,Ta:wx.T,Tm:s.Tm,Tx:s.Tmax,Mm:s.Mm,Mx:s.Mmax,DML:s.DML,N:s.Nkg,Nx:s.Nmax,fan:SIM.fanOn?1:0,kWh:SIM.kWh,cond:SIM.cond,co2:SIM.co2,rain:wx.rain?1:0});if(SIM.hist.length>6000)SIM.hist.shift()}
+function alerts(){const s=stats(),g=GR[S.grain],a=[],wx=SIM.wx||weather(SIM.t);
+ if(s.Tmax-s.Tm>3)a.push(["bad",`Punto caliente: ${s.Tmax.toFixed(1)} °C, ${(s.Tmax-s.Tm).toFixed(1)} °C sobre la media. Revise la termometría y considere airear o transilar.`]);
+ if(SIM.co2>1500)a.push([SIM.co2>4000?"bad":"",`CO₂ en el espacio de cabeza: ${SIM.co2.toFixed(0)} ppm. Aumento de actividad biológica (respiración de grano, hongos o insectos).`]);
+ if(s.Mm>g.Ms+1)a.push(["bad",`Humedad media ${s.Mm.toFixed(1)} % > humedad segura (${g.Ms} %). Tiempo seguro estimado: ${shelfDays(g,s.Tm,s.Mm,S.dmg).toFixed(0)} días.`]);
+ if(SIM.condNow)a.push(["bad","Condensación bajo el techo: el punto de rocío del aire del espacio de cabeza supera la temperatura de la lámina del techo. Gotea sobre el centro de la superficie."]);
+ if(SIM.leakNow)a.push(["bad","Filtración: está lloviendo y entra agua por la escotilla del techo."]);
+ if(SIM.fanOn&&S.aer.mode!=="chill"){const e=EMC(g,wx.T,wx.RH);if(e>s.Mm+.5)a.push(["","Rehumedecimiento: el aire que entra tiene EMC "+e.toFixed(1)+" % > humedad del grano ("+s.Mm.toFixed(1)+" %)."]);if(e<s.Mm-2.5)a.push(["","Sobresecado y merma: el aire que entra tiene EMC "+e.toFixed(1)+" %."])}
+ if(s.Nmax>2)a.push([s.Nmax>20?"bad":"",`Infestación: máximo ${s.Nmax.toFixed(1)} insectos/kg (umbral comercial de referencia ≈ 1–2 insectos/kg).`]);
+ if(s.mites>2)a.push(["",`Ácaros probables en ${s.mites.toFixed(0)} % de la masa (aw ≥ 0,70 sostenida).`]);
+ if(s.risk>1)a.push(["bad",`Riesgo de micotoxinas en ${s.risk.toFixed(1)} % de la masa: ${g.tox.map(k=>TOX[k].n.split(" (")[0]).join(", ")}.`]);
+ if(s.f05>1)a.push(["bad",`${s.f05.toFixed(1)} % de la masa superó 0,5 % de pérdida de materia seca (pérdida de grado en maíz).`]);
+ if(!a.length)a.push(["ok","Sin alertas. Masa de granos estable."]);return a}
+/* =====================================================================
+   9. MUESTREO CON CALADOR
+   ===================================================================== */
+function poisson(l){if(l>30)return Math.max(0,Math.round(l+Math.sqrt(l)*(rnd()+rnd()+rnd()-1.5)*2));let L=Math.exp(-l),k=0,p=1;do{k++;p*=rnd()}while(p>L);return k-1}
+function sampleAt(c,xs,zs){const g=GR[S.grain];const Mw=G.X[c]/(1+G.X[c])*100,T=G.T[c],aw=ERH(g,T,Mw),dm=G.DM[c]*100;
+ const ins=poisson(G.N[c]);const meter=Mw+(rnd()-.5)*.6;
+ const smell=dm>.8?"agrio, a fermento":dm>.25?"a moho":aw>.8?"a humedad":"normal, a grano limpio";
+ const look=dm>.8?"apelmazado, con micelio visible":dm>.25?"manchas de moho en el germen":G.km[c]<.1?"costra compacta":G.km[c]<.7?"con abundantes finos e impurezas":"suelto y limpio";
+ const s={t:SIM.t,xs,zs,T,meter,aw,ins,smell,look,dm};SIM.samples.unshift(s);SIM.samples=SIM.samples.slice(0,8);return s}
+</script>
+<script>
+"use strict";
+/* =====================================================================
+   10. ESCENA 3D (three.js)
+   ===================================================================== */
+const cvs=document.getElementById("gl");
+const R3=new THREE.WebGLRenderer({canvas:cvs,antialias:true,preserveDrawingBuffer:true});
+R3.setPixelRatio(Math.min(2,window.devicePixelRatio||1));R3.shadowMap.enabled=true;R3.shadowMap.type=THREE.PCFSoftShadowMap;R3.outputEncoding=THREE.sRGBEncoding;R3.toneMapping=THREE.ACESFilmicToneMapping;R3.toneMappingExposure=1.0;
+const scene=new THREE.Scene();const cam=new THREE.PerspectiveCamera(40,1,.1,600);
+const hemi=new THREE.HemisphereLight(0xdfeaf7,0x6b5a45,.75);scene.add(hemi);
+const sun=new THREE.DirectionalLight(0xfff1dc,1.6);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);sun.shadow.bias=-.0006;scene.add(sun);scene.add(sun.target);
+const amb=new THREE.AmbientLight(0xffffff,.12);scene.add(amb);
+const lamp=new THREE.PointLight(0xfff0cc,0,30,1.6);scene.add(lamp); // luz del espacio de cabeza (vista nocturna)
+// cielo
+const skyGeo=new THREE.SphereGeometry(300,32,16);const skyMat=new THREE.ShaderMaterial({side:THREE.BackSide,depthWrite:false,uniforms:{top:{value:new THREE.Color(0x6aa2dd)},bot:{value:new THREE.Color(0xe9eff5)}},
+ vertexShader:"varying vec3 vp;void main(){vp=normalize(position);gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}",
+ fragmentShader:"uniform vec3 top;uniform vec3 bot;varying vec3 vp;void main(){float h=clamp(vp.y*1.6+.15,0.,1.);gl_FragColor=vec4(mix(bot,top,h),1.);}"});
+scene.add(new THREE.Mesh(skyGeo,skyMat));
+// texturas procedurales
+function canvasTex(w,h,draw,rep){const c=document.createElement("canvas");c.width=w;c.height=h;draw(c.getContext("2d"),w,h);const t=new THREE.CanvasTexture(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;if(rep)t.repeat.set(rep[0],rep[1]);t.anisotropy=R3.capabilities.getMaxAnisotropy();t.encoding=THREE.sRGBEncoding;return t}
+const texGround=canvasTex(512,512,(x,w,h)=>{x.fillStyle="#7b8a4f";x.fillRect(0,0,w,h);for(let i=0;i<9000;i++){const v=Math.random();x.fillStyle=v<.5?`rgba(60,80,35,${.35*Math.random()})`:`rgba(150,140,90,${.3*Math.random()})`;x.fillRect(Math.random()*w,Math.random()*h,2+Math.random()*3,2+Math.random()*3)}},[30,30]);
+const texConc=canvasTex(256,256,(x,w,h)=>{x.fillStyle="#b9b4aa";x.fillRect(0,0,w,h);for(let i=0;i<5000;i++){x.fillStyle=`rgba(${Math.random()<.5?90:230},${Math.random()<.5?90:225},${Math.random()<.5?85:215},${.18*Math.random()})`;x.fillRect(Math.random()*w,Math.random()*h,1.5,1.5)}},[6,6]);
+const texCorr=canvasTex(64,256,(x,w,h)=>{for(let y=0;y<h;y++){const v=128+110*Math.sin(y/h*2*Math.PI*8);x.fillStyle=`rgb(${v},${v},${v})`;x.fillRect(0,y,w,1)}});texCorr.encoding=THREE.LinearEncoding;
+const texWallCol=canvasTex(256,256,(x,w,h)=>{x.fillStyle="#cfd4da";x.fillRect(0,0,w,h);for(let i=0;i<1600;i++){x.fillStyle=`rgba(${120+Math.random()*60},${110+Math.random()*50},${100},${.06*Math.random()})`;x.fillRect(Math.random()*w,Math.random()*h,1+Math.random()*6,1+Math.random()*10)}for(let y=0;y<h;y+=h/8){x.fillStyle="rgba(90,95,105,.25)";x.fillRect(0,y,w,1.5)}for(let i=0;i<14;i++){x.fillStyle="rgba(70,75,80,.5)";const yy=(i%7+.5)*h/7;x.beginPath();x.arc((i*37)%w,yy,1.6,0,7);x.fill()}});
+const texGrate=canvasTex(128,128,(x,w,h)=>{x.fillStyle="#6c7179";x.fillRect(0,0,w,h);x.fillStyle="#2b2e33";for(let i=0;i<8;i++)for(let j=0;j<16;j++)x.fillRect(i*16+3+(j%2)*8,j*8+3,6,2)},[20,20]);
+function kernelTex(shape){return canvasTex(512,512,(x,w,h)=>{x.fillStyle="#6b6155";x.fillRect(0,0,w,h);
+  const sz={maiz:[13,10],arroz:[15,5.5],trigo:[10,6.5],soya:[8.5,8],frijol:[13,8],cafe:[12,8.5]}[shape]||[10,8];
+  for(let k=0;k<6200;k++){const cx=Math.random()*w,cy=Math.random()*h,a=Math.random()*Math.PI,s=.75+Math.random()*.5;const L=sz[0]*s,Wd=sz[1]*s;
+   for(const dx of[0,-w,w])for(const dy of[0,-h,h]){if(cx+dx<-20||cx+dx>w+20||cy+dy<-20||cy+dy>h+20)continue;x.save();x.translate(cx+dx,cy+dy);x.rotate(a);
+    const gr=x.createRadialGradient(-L*.2,-Wd*.25,1,0,0,L*.7);const b=205+Math.random()*45;gr.addColorStop(0,`rgb(${b+10},${b+10},${b+8})`);gr.addColorStop(.7,`rgb(${b-25},${b-28},${b-32})`);gr.addColorStop(1,`rgb(${b-80},${b-84},${b-88})`);x.fillStyle=gr;x.beginPath();
+    if(shape==="maiz"){x.moveTo(-L*.5,-Wd*.3);x.quadraticCurveTo(-L*.55,Wd*.5,-L*.1,Wd*.5);x.lineTo(L*.5,Wd*.2);x.lineTo(L*.5,-Wd*.2);x.lineTo(-L*.1,-Wd*.5);x.closePath()}else x.ellipse(0,0,L/2,Wd/2,0,0,7);x.fill();
+    if(shape==="trigo"||shape==="cafe"){x.strokeStyle="rgba(60,50,40,.45)";x.lineWidth=1;x.beginPath();x.moveTo(-L*.38,0);x.lineTo(L*.38,0);x.stroke()}
+    if(shape==="maiz"){x.fillStyle="rgba(255,250,235,.55)";x.beginPath();x.ellipse(L*.25,0,L*.13,Wd*.16,0,0,7);x.fill()}
+    if(shape==="frijol"){x.fillStyle="rgba(255,255,255,.65)";x.beginPath();x.ellipse(0,-Wd*.42,L*.12,Wd*.08,0,0,7);x.fill()}
+    x.restore()}}},[1,1])}
+// ---------- objetos estáticos
+const world=new THREE.Group();scene.add(world);
+const ground=new THREE.Mesh(new THREE.CircleGeometry(220,64),new THREE.MeshStandardMaterial({map:texGround,roughness:1}));ground.rotation.x=-Math.PI/2;ground.receiveShadow=true;scene.add(ground);
+let siloGrp=null,grainCut=null,grainTop=null,insMesh=null,dropMesh=null,airPts=null,fanBlades=null,hotLines=null,matCut=null,matTop=null,kTex=null,cables=[],person=null;
+function buildScene(){
+ if(siloGrp){world.remove(siloGrp);siloGrp.traverse(o=>{if(o.geometry)o.geometry.dispose()})}
+ siloGrp=new THREE.Group();world.add(siloGrp);const ge=geom();const R=ge.R,H=S.Hw,roofH=R*Math.tan(25*Math.PI/180),y0=FLOOR;
+ // losa
+ const slab=new THREE.Mesh(new THREE.CylinderGeometry(R+1.6,R+1.8,.35,64),new THREE.MeshStandardMaterial({map:texConc,roughness:.95}));slab.position.y=.12;slab.receiveShadow=true;slab.castShadow=true;siloGrp.add(slab);
+ // pared corrugada: mitad posterior (siempre) y mitad frontal (vista exterior)
+ const wallMat=new THREE.MeshStandardMaterial({color:0xd5dae0,map:texWallCol,bumpMap:texCorr,bumpScale:.04,metalness:.55,roughness:.42,side:THREE.DoubleSide});
+ texCorr.repeat.set(30,H/0.6);texWallCol.repeat.set(10,1);
+ const wb=new THREE.Mesh(new THREE.CylinderGeometry(R,R,H,96,1,true,Math.PI/2,Math.PI),wallMat);wb.position.y=y0+H/2;wb.castShadow=true;wb.receiveShadow=true;siloGrp.add(wb);
+ const wf=new THREE.Mesh(new THREE.CylinderGeometry(R,R,H,96,1,true,-Math.PI/2,Math.PI),wallMat.clone());wf.position.y=y0+H/2;wf.castShadow=true;wf.name="frontWall";siloGrp.add(wf);
+ // anillo de base (plenum) y montantes
+ const ring=new THREE.Mesh(new THREE.CylinderGeometry(R+.06,R+.06,y0,96,1,true),new THREE.MeshStandardMaterial({color:0x8d939b,metalness:.5,roughness:.5,side:THREE.DoubleSide}));ring.position.y=y0/2+.15;siloGrp.add(ring);
+ const stM=new THREE.MeshStandardMaterial({color:0xaab0b8,metalness:.6,roughness:.4});
+ for(let k=0;k<20;k++){const a=k/20*2*Math.PI;const st=new THREE.Mesh(new THREE.BoxGeometry(.12,H,.08),stM);st.position.set((R+.05)*Math.sin(a),y0+H/2,(R+.05)*Math.cos(a));st.rotation.y=a;st.castShadow=true;st.userData.front=Math.cos(a)>0.02;siloGrp.add(st)}
+ // techo cónico (dos mitades) con nervios
+ const roofMat=new THREE.MeshStandardMaterial({color:0xc4cad1,metalness:.55,roughness:.38,side:THREE.DoubleSide});
+ const rb=new THREE.Mesh(new THREE.ConeGeometry(R+.25,roofH,96,1,true,Math.PI/2,Math.PI),roofMat);rb.position.y=y0+H+roofH/2;rb.castShadow=true;siloGrp.add(rb);
+ const rf=new THREE.Mesh(new THREE.ConeGeometry(R+.25,roofH,96,1,true,-Math.PI/2,Math.PI),roofMat.clone());rf.position.y=y0+H+roofH/2;rf.castShadow=true;rf.name="frontRoof";siloGrp.add(rf);
+ for(let k=0;k<24;k++){const a=k/24*2*Math.PI;const L=Math.hypot(R,roofH);const rib=new THREE.Mesh(new THREE.BoxGeometry(.06,.05,L),stM);rib.position.set(Math.sin(a)*R/2,y0+H+roofH/2+.04,Math.cos(a)*R/2);rib.lookAt(0,y0+H+roofH+.04,0);rib.userData.front=Math.cos(a)>.02;siloGrp.add(rib)}
+ const vent=new THREE.Mesh(new THREE.CylinderGeometry(.55,.65,.6,24),stM);vent.position.y=y0+H+roofH+.1;siloGrp.add(vent);
+ const cap=new THREE.Mesh(new THREE.ConeGeometry(.9,.35,24),roofMat);cap.position.y=y0+H+roofH+.62;siloGrp.add(cap);
+ // escotilla (filtración)
+ const hatch=new THREE.Mesh(new THREE.BoxGeometry(.8,.18,.8),new THREE.MeshStandardMaterial({color:0x9aa1a9,metalness:.5,roughness:.5}));const hx=R*.28;hatch.position.set(hx,y0+H+roofH*(1-hx/R)+.1,-.6);hatch.rotation.z=-25*Math.PI/180;siloGrp.add(hatch);
+ // escalera exterior
+ const ld=new THREE.Group();const lm=new THREE.MeshStandardMaterial({color:0x7d848c,metalness:.6,roughness:.4});
+ for(const s of[-.22,.22]){const r=new THREE.Mesh(new THREE.BoxGeometry(.05,H+.4,.05),lm);r.position.set(s,y0+H/2,0);ld.add(r)}for(let y=.3;y<H;y+=.3){const r=new THREE.Mesh(new THREE.BoxGeometry(.44,.03,.03),lm);r.position.set(0,y0+y,0);ld.add(r)}
+ ld.position.set(-(R+.35)*Math.sin(Math.PI*.15),0,(R+.35)*Math.cos(Math.PI*.15));ld.rotation.y=-Math.PI*.15;ld.userData.front=true;siloGrp.add(ld);
+ // persona (escala 1,75 m)
+ person=new THREE.Group();const pm=new THREE.MeshStandardMaterial({color:0x2f4f7a,roughness:.8});const sk=new THREE.MeshStandardMaterial({color:0xc69a74,roughness:.8});
+ const body=new THREE.Mesh(new THREE.CylinderGeometry(.19,.16,.75,12),pm);body.position.y=1.1;const legs=new THREE.Mesh(new THREE.CylinderGeometry(.16,.13,.75,12),new THREE.MeshStandardMaterial({color:0x333a44}));legs.position.y=.38;
+ const head=new THREE.Mesh(new THREE.SphereGeometry(.12,16,12),sk);head.position.y=1.62;const helm=new THREE.Mesh(new THREE.SphereGeometry(.135,16,8,0,Math.PI*2,0,Math.PI/2),new THREE.MeshStandardMaterial({color:0xf2c230}));helm.position.y=1.64;
+ person.add(body,legs,head,helm);person.traverse(o=>{o.castShadow=true});person.position.set(R+.9,.3,3.6);siloGrp.add(person);
+ // ventilador y transición
+ const fanG=new THREE.Group();const fm=new THREE.MeshStandardMaterial({color:0x3f6c51,metalness:.4,roughness:.5});
+ const tr=new THREE.Mesh(new THREE.BoxGeometry(1.4,.55,.9),fm);tr.position.set(R+.7,.45,0);fanG.add(tr);
+ const hous=new THREE.Mesh(new THREE.CylinderGeometry(.62,.62,.7,32,1,true),new THREE.MeshStandardMaterial({color:0x3f6c51,metalness:.4,roughness:.5,side:THREE.DoubleSide}));hous.rotation.z=Math.PI/2;hous.position.set(R+1.75,.75,0);fanG.add(hous);
+ const mot=new THREE.Mesh(new THREE.CylinderGeometry(.25,.25,.45,20),new THREE.MeshStandardMaterial({color:0x2a2d31,metalness:.5,roughness:.5}));mot.rotation.z=Math.PI/2;mot.position.set(R+2.3,.75,0);fanG.add(mot);
+ fanBlades=new THREE.Group();const bm=new THREE.MeshStandardMaterial({color:0xd8dde2,metalness:.7,roughness:.3,side:THREE.DoubleSide});
+ for(let k=0;k<6;k++){const bl=new THREE.Mesh(new THREE.BoxGeometry(.02,.5,.18),bm);bl.position.y=.27;const p=new THREE.Group();p.add(bl);p.rotation.x=k/6*2*Math.PI;bl.rotation.y=.5;fanBlades.add(p)}
+ fanBlades.position.set(R+1.95,.75,0);fanG.add(fanBlades);const grill=new THREE.Mesh(new THREE.RingGeometry(.05,.6,24,3),new THREE.MeshBasicMaterial({color:0x222222,wireframe:true}));grill.rotation.y=Math.PI/2;grill.position.set(R+2.08,.75,0);fanG.add(grill);
+ fanG.traverse(o=>{o.castShadow=true});siloGrp.add(fanG);
+ // piso perforado y ductos (en el corte)
+ const flo=new THREE.Mesh(new THREE.CircleGeometry(R,64,Math.PI,Math.PI),new THREE.MeshStandardMaterial({map:texGrate,metalness:.5,roughness:.5,side:THREE.DoubleSide}));flo.rotation.x=-Math.PI/2;flo.position.y=y0+.005;siloGrp.add(flo);
+ const plen=new THREE.Mesh(new THREE.PlaneGeometry(S.D,y0-.3),new THREE.MeshStandardMaterial({color:0x2c3036,roughness:.9}));plen.position.set(0,.3+(y0-.3)/2,-.01);siloGrp.add(plen);
+ for(let k=-4;k<=4;k++){const sp=new THREE.Mesh(new THREE.BoxGeometry(.05,y0-.3,.05),stM);sp.position.set(k*R/5,.3+(y0-.3)/2,.01);siloGrp.add(sp)}
+ if(S.aer.duct!=="piso"){const dm=new THREE.MeshStandardMaterial({color:0x9ea5ad,metalness:.6,roughness:.35,side:THREE.DoubleSide});const xs=S.aer.duct==="central"?[0]:[-.3*S.D,.3*S.D];
+  for(const x of xs){const d=new THREE.Mesh(new THREE.CylinderGeometry(.42,.42,R*1.8,24,1,true,Math.PI/2,Math.PI),dm);d.rotation.x=Math.PI/2;d.rotation.y=Math.PI/2;d.rotation.z=0;d.position.set(x,y0,-R*.9);d.rotation.set(Math.PI/2,0,Math.PI/2);siloGrp.add(d)}}
+ // grano: superficie de corte y superficie superior
+ kTex=kernelTex(GR[S.grain].shape);kTex.repeat.set(1,1);
+ matCut=new THREE.MeshStandardMaterial({map:kTex,vertexColors:true,roughness:.9,metalness:0});
+ grainCut=new THREE.Mesh(new THREE.BufferGeometry(),matCut);grainCut.receiveShadow=true;siloGrp.add(grainCut);
+ matTop=new THREE.MeshStandardMaterial({map:kTex,vertexColors:true,roughness:.9,metalness:0,side:THREE.DoubleSide});
+ grainTop=new THREE.Mesh(new THREE.BufferGeometry(),matTop);grainTop.receiveShadow=true;siloGrp.add(grainTop);
+ buildGrainGeom();
+ // cables de termometría
+ cables=[];const cm=new THREE.MeshStandardMaterial({color:0x1d1d1d,roughness:.6}),nm=new THREE.MeshStandardMaterial({color:0xd4a017,roughness:.5,metalness:.3});
+ for(const i of G.sens){const x=(i+.5)*G.dx-R;const cb=new THREE.Mesh(new THREE.CylinderGeometry(.025,.025,H+roofH*(1-Math.abs(x)/R)-.3,8),cm);cb.position.set(x,y0+.3+(H+roofH*(1-Math.abs(x)/R)-.3)/2,.04);siloGrp.add(cb);
+  const nodes=[];for(let zz=1;zz<ge.Hdom;zz+=Math.max(2,ge.Hdom/6)){const nd=new THREE.Mesh(new THREE.SphereGeometry(.09,12,8),nm);nd.position.set(x,y0+zz,.05);siloGrp.add(nd);nodes.push({zz,nd})}cables.push({i,x,nodes})}
+ // insectos (instanciados, ampliados para ser visibles)
+ const bg=new THREE.SphereGeometry(1,10,8);bg.scale(.06,.028,.032);insMesh=new THREE.InstancedMesh(bg,new THREE.MeshStandardMaterial({color:PL[S.pest].col,roughness:.45,metalness:.1}),1600);insMesh.count=0;insMesh.frustumCulled=false;siloGrp.add(insMesh);
+ // gotas de condensación y filtración
+ dropMesh=new THREE.InstancedMesh(new THREE.SphereGeometry(.05,8,6),new THREE.MeshStandardMaterial({color:0x8fc4ff,roughness:.05,metalness:.1,transparent:true,opacity:.85}),260);dropMesh.count=0;dropMesh.frustumCulled=false;siloGrp.add(dropMesh);
+ // partículas de aire
+ const pg=new THREE.BufferGeometry();const NPa=1600;pg.setAttribute("position",new THREE.BufferAttribute(new Float32Array(NPa*3),3));pg.setAttribute("color",new THREE.BufferAttribute(new Float32Array(NPa*3),3));
+ const spr=canvasTex(32,32,(x,w,h)=>{const g2=x.createRadialGradient(16,16,0,16,16,16);g2.addColorStop(0,"rgba(255,255,255,1)");g2.addColorStop(.4,"rgba(255,255,255,.7)");g2.addColorStop(1,"rgba(255,255,255,0)");x.fillStyle=g2;x.fillRect(0,0,32,32)});
+ airPts=new THREE.Points(pg,new THREE.PointsMaterial({size:.16,map:spr,vertexColors:true,transparent:true,depthWrite:false,opacity:.95}));airPts.frustumCulled=false;siloGrp.add(airPts);airParts=[];for(let k=0;k<NPa;k++)airParts.push(newPart(true));
+ hotLines=new THREE.LineSegments(new THREE.BufferGeometry(),new THREE.LineBasicMaterial({color:0xff2a2a}));siloGrp.add(hotLines);
+ applyCut();fitCamera(camPreset);
+}
+function applyCut(){siloGrp.traverse(o=>{if(o.name==="frontWall"||o.name==="frontRoof"||o.userData.front)o.visible=!S.cut});}
+// ---------- geometría del grano (corte en z=0 y superficie superior axisimétrica)
+function colTop(xs){const{NX,NZ,dx,dz}=G;const i=Math.max(0,Math.min(NX-1,Math.floor((xs+S.D/2)/dx)));let j=NZ-1;while(j>=0&&!G.G[j*NX+i])j--;return(j+1)*dz}
+function topAtX(xs){const ge=geom();const x=Math.max(-ge.R+1e-3,Math.min(ge.R-1e-3,xs));const f=(x+ge.R)/G.dx-.5;const i0=Math.max(0,Math.min(G.NX-1,Math.floor(f))),i1=Math.min(G.NX-1,i0+1),t=Math.max(0,Math.min(1,f-i0));
+ const a=colTop(-ge.R+(i0+.5)*G.dx),b=colTop(-ge.R+(i1+.5)*G.dx);const geomTop=ge.Hf+ge.hc*(1-Math.abs(x)/ge.R);return Math.min(geomTop,a*(1-t)+b*t)}
+let cutUV=null;
+function buildGrainGeom(){const ge=geom();const R=ge.R,y0=FLOOR;const SX=80,SY=Math.max(30,Math.round(G.NZ*1.5));
+ // corte
+ const pos=[],uv=[],col=[],idx=[];const cut=[];
+ for(let jy=0;jy<=SY;jy++)for(let ix=0;ix<=SX;ix++){const xs=-R+ix/SX*S.D;const top=topAtX(xs);const zs=jy/SY*top;pos.push(xs,y0+zs,0);uv.push((xs+R)/.9,zs/.9);col.push(1,1,1);cut.push([xs,zs])}
+ for(let jy=0;jy<SY;jy++)for(let ix=0;ix<SX;ix++){const a=jy*(SX+1)+ix,b=a+1,c=a+SX+1,d=c+1;idx.push(a,b,d,a,d,c)}
+ const g1=new THREE.BufferGeometry();g1.setAttribute("position",new THREE.Float32BufferAttribute(pos,3));g1.setAttribute("uv",new THREE.Float32BufferAttribute(uv,2));g1.setAttribute("color",new THREE.Float32BufferAttribute(col,3));g1.setIndex(idx);g1.computeVertexNormals();
+ grainCut.geometry.dispose();grainCut.geometry=g1;grainCut.userData.pts=cut;
+ // superficie superior (semidisco posterior, z<=0)
+ const NR=40,NT=48;const p2=[],u2=[],c2=[],i2=[],top=[];
+ for(let ir=0;ir<=NR;ir++)for(let it=0;it<=NT;it++){const r=ir/NR*R*.999,th=Math.PI+it/NT*Math.PI;const x=r*Math.cos(th),z=r*Math.sin(th);const xs=x>=0?r:-r;const zs=topAtX(Math.abs(x)<1e-6?r:(x>0?r:-r));p2.push(x,y0+zs+.004,z);u2.push(x/.9,z/.9);c2.push(1,1,1);top.push([xs,zs-.01])}
+ for(let ir=0;ir<NR;ir++)for(let it=0;it<NT;it++){const a=ir*(NT+1)+it,b=a+1,c=a+NT+1,d=c+1;i2.push(a,d,b,a,c,d)}
+ const g2=new THREE.BufferGeometry();g2.setAttribute("position",new THREE.Float32BufferAttribute(p2,3));g2.setAttribute("uv",new THREE.Float32BufferAttribute(u2,2));g2.setAttribute("color",new THREE.Float32BufferAttribute(c2,3));g2.setIndex(i2);g2.computeVertexNormals();
+ grainTop.geometry.dispose();grainTop.geometry=g2;grainTop.userData.pts=top;
+}
+function cellOf(xs,zs){const{NX,NZ,dx,dz}=G;let i=Math.floor((xs+S.D/2)/dx),j=Math.floor(zs/dz);i=Math.max(0,Math.min(NX-1,i));j=Math.max(0,Math.min(NZ-1,j));let c=j*NX+i;while(!G.G[c]&&j>0){j--;c=j*NX+i}return G.G[c]?c:-1}
+function fieldAt(xs,zs,fn){const{NX,NZ,dx,dz}=G;const fx=(xs+S.D/2)/dx-.5,fz=zs/dz-.5;const i0=Math.floor(fx),j0=Math.floor(fz),tx=fx-i0,tz=fz-j0;let s=0,w=0;
+ for(const[di,dj,ww]of[[0,0,(1-tx)*(1-tz)],[1,0,tx*(1-tz)],[0,1,(1-tx)*tz],[1,1,tx*tz]]){const i=Math.max(0,Math.min(NX-1,i0+di)),j=Math.max(0,Math.min(NZ-1,j0+dj));const c=j*NX+i;if(G.G[c]&&ww>0){s+=fn(c)*ww;w+=ww}}
+ if(w>0)return s/w;const c=cellOf(xs,zs);return c>=0?fn(c):0}
+/* ---------- capas de visualización */
+const lerp=(a,b,t)=>a+(b-a)*t;
+function stops(st,v){v=Math.max(0,Math.min(1,v));for(let k=1;k<st.length;k++)if(v<=st[k][0]){const t=(v-st[k-1][0])/(st[k][0]-st[k-1][0]),a=st[k-1][1],b=st[k][1];return[lerp(a[0],b[0],t),lerp(a[1],b[1],t),lerp(a[2],b[2],t)]}return st[st.length-1][1]}
+const CM={T:v=>stops([[0,[8,29,88]],[.25,[33,102,172]],[.45,[146,197,222]],[.55,[247,247,247]],[.7,[253,174,97]],[.85,[215,48,39]],[1,[140,10,20]]],v),
+ M:v=>stops([[0,[166,97,26]],[.35,[223,194,125]],[.55,[245,245,245]],[.75,[128,205,193]],[1,[1,102,94]]],v),
+ R:v=>stops([[0,[255,255,229]],[.3,[254,227,145]],[.6,[254,153,41]],[.85,[204,76,2]],[1,[102,37,6]]],v),
+ V:v=>stops([[0,[252,251,253]],[.4,[188,189,220]],[.7,[117,107,177]],[1,[63,0,125]]],v)};
+const Mw=c=>G.X[c]/(1+G.X[c])*100;
+const LAY={
+ real:{n:"Vista real del grano",u:""},
+ T:{n:"Termografía",u:"°C",map:CM.T,rng:()=>{let mx=-99;for(let c=0;c<G.n;c++)if(G.G[c]&&G.T[c]>mx)mx=G.T[c];return[Math.min(10,S.clim.Tm-12),Math.max(45,S.clim.Tm+15,Math.ceil(mx/5)*5)]},val:c=>G.T[c]},
+ M:{n:"Humedad del grano",u:"% b.h.",map:CM.M,rng:()=>{const g=GR[S.grain];return[g.Ms-5,g.Ms+9]},val:c=>Mw(c)},
+ A:{n:"Actividad de agua (HR intergranular)",u:"aw",map:CM.M,rng:()=>[.5,1],val:c=>ERH(GR[S.grain],G.T[c],Mw(c))},
+ D:{n:"Pérdida de materia seca",u:"%",map:CM.R,rng:()=>[0,1],val:c=>G.DM[c]*100},
+ I:{n:"Insectos",u:"ins/kg",map:CM.R,rng:()=>[0,50],val:c=>G.N[c]},
+ X:{n:"Riesgo de micotoxinas",u:"índice",map:CM.R,rng:()=>[0,200],val:c=>G.rA[c]},
+ V:{n:"Velocidad del aire",u:"mm/s",map:CM.V,rng:()=>[0,Math.max(.2,S.aer.mode!=="off"?G.u0*2000:1)],val:c=>Math.hypot(G.ux[c],G.uz[c])*1000}
+};
+function realColor(c){const g=GR[S.grain];const b=g.col;let r=b[0],gg=b[1],bb=b[2];
+ const M=Mw(c),e=Math.max(0,Math.min(1,(M-g.Ms)/7));r*=1-.35*e;gg*=1-.33*e;bb*=1-.25*e; // grano húmedo: más oscuro
+ if(G.km[c]<.7){const t=G.km[c]<.1?.65:.4;const d=G.km[c]<.1?[.32,.24,.16]:[.62,.56,.46];r=lerp(r,d[0],t);gg=lerp(gg,d[1],t);bb=lerp(bb,d[2],t)}
+ const dm=Math.max(0,Math.min(1,G.DM[c]*100/1.2));if(dm>0){const m=[.36,.44,.36];const t=.75*Math.pow(dm,.7);r=lerp(r,m[0],t);gg=lerp(gg,m[1],t);bb=lerp(bb,m[2],t)}
+ const ins=Math.max(0,Math.min(1,(G.dmg[c]-S.dmg)/30));if(ins>0){r=lerp(r,.85,.3*ins);gg=lerp(gg,.8,.3*ins);bb=lerp(bb,.72,.3*ins)}
+ return[r,gg,bb]}
+function paintGrain(){const L=LAY[S.view];let a=0,b=1;if(S.view!=="real")[a,b]=L.rng();
+ for(const mesh of[grainCut,grainTop]){const pts=mesh.userData.pts;const ca=mesh.geometry.getAttribute("color");
+  for(let k=0;k<pts.length;k++){const[xs,zs]=pts[k];let col;if(S.view==="real"){const c=cellOf(xs,Math.max(0,zs));col=c>=0?realColor(c):[.5,.5,.5]}else{const v=fieldAt(xs,Math.max(0,zs),L.val);const cc=L.map((v-a)/(b-a));col=[cc[0]/255,cc[1]/255,cc[2]/255]}
+   ca.setXYZ(k,Math.pow(col[0],2.2),Math.pow(col[1],2.2),Math.pow(col[2],2.2))}ca.needsUpdate=true}
+ matCut.map=S.view==="real"?kTex:null;matTop.map=matCut.map;matCut.needsUpdate=matTop.needsUpdate=true;
+ // contorno de puntos calientes
+ const st=stats(),thr=st.Tm+3,{NX,NZ,dx,dz}=G;const hot=c=>G.G[c]&&G.T[c]>thr;const seg=[];const X=i=>-S.D/2+i*dx,Y=j=>FLOOR+j*dz,z=.06;
+ for(let j=0;j<NZ;j++)for(let i=0;i<NX;i++){const c=j*NX+i;if(!hot(c))continue;
+  if(i===0||!hot(c-1))seg.push(X(i),Y(j),z,X(i),Y(j+1),z);if(i===NX-1||!hot(c+1))seg.push(X(i+1),Y(j),z,X(i+1),Y(j+1),z);
+  if(j===NZ-1||!hot(c+NX))seg.push(X(i),Y(j+1),z,X(i+1),Y(j+1),z);if(j===0||!hot(c-NX))seg.push(X(i),Y(j),z,X(i+1),Y(j),z)}
+ hotLines.geometry.dispose();const hg=new THREE.BufferGeometry();hg.setAttribute("position",new THREE.Float32BufferAttribute(seg,3));hotLines.geometry=hg;
+ placeInsects();drawLegend()}
+/* ---------- insectos */
+const tmpM=new THREE.Matrix4(),tmpQ=new THREE.Quaternion(),tmpE=new THREE.Euler(),tmpV=new THREE.Vector3(),tmpS=new THREE.Vector3(1,1,1);let insList=[];
+function placeInsects(){insList=[];const{NX,NZ,dx,dz}=G;let tot=0;
+ for(let j=0;j<NZ;j++)for(let i=0;i<NX;i++){const c=j*NX+i;if(!G.G[c])continue;const N=G.N[c];if(N<.4)continue;const k=Math.min(10,Math.ceil(Math.log10(N*2+1)*4));
+  for(let q=0;q<k&&tot<1600;q++,tot++){const hx=hash(c*7.1+q*3.3),hz=hash(c*1.7+q*9.1);insList.push({x:-S.D/2+(i+hx)*dx,y:FLOOR+(j+hz)*dz,z:.03,a:hash(c+q)*6.28,top:false})}}
+ // en la superficie: insectos de la capa superior
+ for(let i=0;i<NX&&tot<1600;i++){let j=NZ-1;while(j>=0&&!G.G[j*NX+i])j--;if(j<0)continue;const c=j*NX+i;const N=G.N[c];if(N<.4)continue;const k=Math.min(14,Math.ceil(Math.log10(N*2+1)*5));
+  for(let q=0;q<k&&tot<1600;q++,tot++){const r=Math.abs(-S.D/2+(i+.5)*G.dx);const th=Math.PI+hash(c*5.3+q)*Math.PI;const sgn=(i+.5)*G.dx-S.D/2>=0?1:-1;const x=Math.abs(r*Math.cos(th))*sgn,z=r*Math.sin(th);insList.push({x,y:FLOOR+topAtX(-S.D/2+(i+.5)*G.dx)+.02,z,a:hash(c+q*2)*6.28,top:true})}}
+ insMesh.count=insList.length}
+function animInsects(t){if(!insList.length)return;for(let k=0;k<insList.length;k++){const p=insList[k];const w=Math.sin(t*1.3+k)*.03,v=Math.cos(t*1.1+k*1.7)*.03;
+  tmpV.set(p.x+w,p.y+(p.top?0:v),p.z+(p.top?v:0));tmpE.set(p.top?0:Math.PI/2,p.top?p.a+t*.4:0,p.top?0:p.a+t*.4);tmpQ.setFromEuler(tmpE);tmpM.compose(tmpV,tmpQ,tmpS);insMesh.setMatrixAt(k,tmpM)}insMesh.instanceMatrix.needsUpdate=true}
+/* ---------- aire */
+let airParts=[];
+function newPart(any){const{NX,NZ}=G;if(SIM.fanOn&&!any){let i=0;for(let t=0;t<30;t++){i=Math.floor(rnd()*NX);if(G.inlet[i])break}return{x:-S.D/2+(i+rnd())*G.dx,z:.02,age:0,life:400+rnd()*500,out:false}}
+ for(let t=0;t<50;t++){const i=Math.floor(rnd()*NX),j=Math.floor(rnd()*NZ);if(G.G[j*NX+i])return{x:-S.D/2+(i+rnd())*G.dx,z:(j+rnd())*G.dz,age:0,life:150+rnd()*300,out:false}}return{x:0,z:.1,age:0,life:100,out:false}}
+function velAt(xs,zs){const i=Math.floor((xs+S.D/2)/G.dx),j=Math.floor(zs/G.dz);if(i<0||j<0||i>=G.NX||j>=G.NZ)return null;const c=j*G.NX+i;if(!G.G[c])return null;return[G.ux[c],G.uz[c]]}
+function animAir(){const pos=airPts.geometry.getAttribute("position"),col=airPts.geometry.getAttribute("color");const vref=SIM.fanOn?G.u0:2e-4;const f=.10*Math.max(S.D,S.Hw)/Math.max(1e-9,vref)/60;const dark=S.view==="V";
+ const ge=geom();const roofTop=S.Hw+S.D/2*Math.tan(25*Math.PI/180);
+ for(let k=0;k<airParts.length;k++){const p=airParts[k];if(!S.showAir){pos.setXYZ(k,0,-50,0);continue}
+  if(p.out){p.z+=.05;p.x*=.985;p.age++;if(p.z>roofTop+.6||p.age>p.life)Object.assign(p,newPart(false))}
+  else{const v=velAt(p.x,p.z);if(!v||p.age>p.life){if(!v&&SIM.fanOn&&p.z>.5&&p.z>=topAtX(p.x)-.3){p.out=true;p.age=0;p.life=400}else{Object.assign(p,newPart(false));continue}}else{p.x+=v[0]*f;p.z+=v[1]*f;p.age++}}
+  pos.setXYZ(k,p.x,FLOOR+p.z,.09);const sp=p.out?1:Math.min(1,.3+Math.hypot(...(velAt(p.x,p.z)||[0,0]))/vref);const a=(SIM.fanOn?1:.55)*sp;
+  if(dark)col.setXYZ(k,a,.92*a,.45*a);else col.setXYZ(k,a,a,a)}
+ pos.needsUpdate=col.needsUpdate=true;airPts.material.opacity=SIM.fanOn?.95:.6}
+/* ---------- gotas */
+function animDrops(t){const ge=geom();const R=ge.R,yr=FLOOR+S.Hw;let n=0;
+ if(SIM.condNow){for(let k=0;k<70&&n<260;k++,n++){const r=R*(.08+.85*hash(k*3.1)),th=Math.PI+hash(k*1.9)*Math.PI;const x=r*Math.cos(th),z=r*Math.sin(th);const yroof=yr+R*Math.tan(25*Math.PI/180)*(1-r/R)-.08;
+   const fall=(k%4===0)?((t*.6+hash(k))%1):0;const ys=yroof-fall*(yroof-FLOOR-topAtX(x)) ;tmpV.set(x,ys,z);tmpM.compose(tmpV,tmpQ.identity(),tmpS);dropMesh.setMatrixAt(n,tmpM)}}
+ if(SIM.leakNow){const hx=R*.28;for(let k=0;k<60&&n<260;k++,n++){const fall=(t*.9+k/60)%1;const yt=FLOOR+S.Hw+R*Math.tan(25*Math.PI/180)*(1-hx/R);const yb=FLOOR+topAtX(hx);tmpV.set(hx+(hash(k)-.5)*.3,yt-fall*(yt-yb),-.6+(hash(k*2)-.5)*.3);tmpM.compose(tmpV,tmpQ.identity(),tmpS);dropMesh.setMatrixAt(n,tmpM)}}
+ dropMesh.count=n;dropMesh.instanceMatrix.needsUpdate=true}
+/* ---------- iluminación según la hora */
+function updateLight(){const wx=SIM.wx||weather(SIM.t);const hr=wx.hr;const day=wx.I>5;const ang=(hr-6)/12*Math.PI;const ge=geom();
+ const H=S.Hw+8;sun.position.set(Math.cos(ang)*-60,Math.max(4,Math.sin(ang)*70),35);sun.target.position.set(0,H/3,0);
+ const k=day?Math.min(1,wx.I/600):0;sun.intensity=wx.rain?.35:.25+1.5*k;sun.color.set(day?(Math.sin(ang)<.35?0xffc890:0xfff1dc):0x9fb4ff);if(!day){sun.position.set(30,60,40);sun.intensity=.18}
+ hemi.intensity=day?(wx.rain?.55:.55+.35*k):.22;skyMat.uniforms.top.value.set(wx.rain?0x7d8794:day?0x5f99d6:0x0b1430);skyMat.uniforms.bot.value.set(wx.rain?0xb9c0c8:day?0xe6edf4:0x2a3557);
+ lamp.position.set(0,FLOOR+S.Hw+.5,-.5);lamp.intensity=day?0:.9;R3.toneMappingExposure=day?1:1.25;
+ const sh=ge.R+8;const cs=sun.shadow.camera;cs.left=-sh;cs.right=sh;cs.top=sh+H/2;cs.bottom=-sh;cs.near=1;cs.far=200;cs.updateProjectionMatrix()}
+/* ---------- cámara orbital */
+const camS={th:.0,ph:1.28,r:30,tx:0,ty:8,tz:0};let camPreset="corte";
+function fitCamera(p){camPreset=p;const ge=geom();const H=S.Hw+FLOOR+S.D/2*Math.tan(25*Math.PI/180);const asp=Math.max(.3,cam.aspect||1.4);const sz=Math.max(S.D*1.3/Math.min(1,asp/1.1),H);
+ if(p==="corte"){camS.th=-.42;camS.ph=1.22;camS.r=sz*1.75;camS.tx=0;camS.ty=H*.45;camS.tz=-ge.R*.15}
+ if(p==="detalle"){camS.th=-.25;camS.ph=1.35;camS.r=3.2;camS.tx=-ge.R*.35;camS.ty=FLOOR+ge.Hf*.55;camS.tz=0}
+ if(p==="exterior"){camS.th=-.75;camS.ph=1.3;camS.r=sz*2.0;camS.tx=0;camS.ty=H*.45;camS.tz=0}
+ if(p==="arriba"){camS.th=.15;camS.ph=.62;camS.r=sz*1.25;camS.tx=0;camS.ty=FLOOR+ge.Hf;camS.tz=-ge.R*.3}
+ if(p==="vent"){camS.th=.9;camS.ph=1.38;camS.r=9;camS.tx=ge.R+1.2;camS.ty=1.2;camS.tz=0}
+ if((p==="corte"||p==="detalle"||p==="arriba")&&!S.cut){S.cut=true;applyCut();toolbar()}if(p==="exterior"&&S.cut){S.cut=false;applyCut();toolbar()}updCam()}
+function updCam(){camS.ph=Math.max(.15,Math.min(1.56,camS.ph));camS.r=Math.max(4,Math.min(140,camS.r));
+ cam.position.set(camS.tx+camS.r*Math.sin(camS.ph)*Math.sin(camS.th),camS.ty+camS.r*Math.cos(camS.ph),camS.tz+camS.r*Math.sin(camS.ph)*Math.cos(camS.th));cam.lookAt(camS.tx,camS.ty,camS.tz)}
+let drag=null;const ptrs=new Map();
+cvs.addEventListener("pointerdown",e=>{cvs.setPointerCapture(e.pointerId);ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});drag={x:e.clientX,y:e.clientY,b:e.button,moved:0,shift:e.shiftKey};cvs.style.cursor="grabbing"});
+cvs.addEventListener("pointermove",e=>{const r=cvs.getBoundingClientRect();if(!drag){if(e.pointerType==="mouse"&&S.tool==="insp")hover(e.clientX-r.left,e.clientY-r.top);return}
+ const prev=ptrs.get(e.pointerId);ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});
+ if(ptrs.size===2){const[a,b]=[...ptrs.values()];const d=Math.hypot(a.x-b.x,a.y-b.y);if(drag.pd)camS.r*=drag.pd/d;drag.pd=d;drag.moved+=10;updCam();return}
+ const dx=e.clientX-prev.x,dy=e.clientY-prev.y;drag.moved+=Math.abs(dx)+Math.abs(dy);
+ if(drag.b===2||drag.shift){const s=camS.r/600;camS.tx-=dx*s*Math.cos(camS.th);camS.tz+=dx*s*Math.sin(camS.th);camS.ty+=dy*s}else{camS.th-=dx*.006;camS.ph-=dy*.006}updCam()});
+cvs.addEventListener("pointerup",e=>{ptrs.delete(e.pointerId);if(drag&&drag.moved<6){const r=cvs.getBoundingClientRect();click(e.clientX-r.left,e.clientY-r.top)}if(!ptrs.size){drag=null;cvs.style.cursor="grab"}});
+cvs.addEventListener("pointerleave",()=>{if(S.tool==="insp")tip.style.display="none"});
+cvs.addEventListener("wheel",e=>{e.preventDefault();camS.r*=Math.exp(e.deltaY*.0012);updCam()},{passive:false});
+cvs.addEventListener("contextmenu",e=>e.preventDefault());
+/* ---------- selección (raycast) */
+const ray=new THREE.Raycaster(),mv=new THREE.Vector2();
+function pick(px,py){const w=cvs.clientWidth,h=cvs.clientHeight;mv.set(px/w*2-1,-(py/h)*2+1);ray.setFromCamera(mv,cam);if(!S.cut)return null;const hit=ray.intersectObjects([grainCut,grainTop],false)[0];if(!hit)return null;
+ const p=hit.point;const r=Math.hypot(p.x,p.z);const xs=hit.object===grainCut?p.x:(p.x>=0?r:-r);const zs=p.y-FLOOR;const c=cellOf(xs,Math.max(0,zs-.01));return c<0?null:{c,xs,zs,p}}
+const tip=document.getElementById("tip");
+function cellTip(h){const g=GR[S.grain],c=h.c;const M=Mw(c),aw=ERH(g,G.T[c],M);
+ return`<b>x = ${h.xs.toFixed(1)} m · z = ${h.zs.toFixed(1)} m</b><br>T = ${G.T[c].toFixed(1)} °C · M = ${M.toFixed(1)} % · aw = ${aw.toFixed(3)}<br>Pérdida de MS = ${(G.DM[c]*100).toFixed(3)} % · insectos ≈ ${G.N[c].toFixed(1)}/kg<br>Aire: ${(Math.hypot(G.ux[c],G.uz[c])*1000).toFixed(2)} mm/s · permeabilidad ×${G.km[c].toFixed(2)}<br>Tiempo seguro (Thompson): ${Math.min(999,shelfDays(g,G.T[c],M,G.dmg[c])).toFixed(0)} d · micotoxinas: ${G.rA[c].toFixed(0)}`}
+function hover(px,py){const h=pick(px,py);if(!h){tip.style.display="none";return}tip.innerHTML=cellTip(h);showTip(px,py)}
+function showTip(px,py){tip.style.display="block";const w=cvs.clientWidth;let lx=px+14;if(lx+300>w)lx=px-310;tip.style.left=Math.max(4,lx)+"px";tip.style.top=Math.max(4,py+10)+"px"}
+function click(px,py){const h=pick(px,py);if(!h){tip.style.display="none";return}
+ if(S.tool==="insp"){tip.innerHTML=cellTip(h);showTip(px,py);return}
+ if(S.tool==="calar"){const s=sampleAt(h.c,h.xs,h.zs);tip.innerHTML=sampleHTML(s);showTip(px,py);if(TAB==="mon")panel();return}
+ let flow=false;
+ for(let j=0;j<G.NZ;j++)for(let i=0;i<G.NX;i++){const c=j*G.NX+i;if(!G.G[c])continue;const d=Math.hypot(-S.D/2+(i+.5)*G.dx-h.xs,(j+.5)*G.dz-h.zs);if(d>S.rad)continue;const w=1-d/S.rad*.5;
+  if(S.tool==="ins")G.N[c]+=S.infDen*10*w;
+  if(S.tool==="hum"){const M=Math.min(30,Mw(c)+4*w);G.X[c]=M/(100-M);G.T[c]+=2*w;G.dmg[c]=Math.min(80,G.dmg[c]+15)}
+  if(S.tool==="fin"){G.km[c]=Math.min(G.km[c],.2);flow=true}if(S.tool==="cos"){G.km[c]=Math.min(G.km[c],.03);flow=true}if(S.tool==="clr"){G.km[c]=1;flow=true}}
+ if(flow){solveForced();solveNatural()}paintGrain();refreshInfo()}
+function sampleHTML(s){return`<b>Muestra con calador</b> · día ${Math.floor(s.t/24)}, ${String(Math.floor(s.t%24)).padStart(2,"0")}:00<br>Posición: x = ${s.xs.toFixed(1)} m, z = ${s.zs.toFixed(1)} m<br>Termómetro de sonda: ${s.T.toFixed(1)} °C<br>Determinador de humedad: ${s.meter.toFixed(1)} % b.h.<br>Insectos vivos en 1 kg tamizado: <b>${s.ins}</b><br>Olor: ${s.smell} · aspecto: ${s.look}`}
+/* ---------- etiquetas HTML (sensores) */
+const labels=document.getElementById("labels");
+function updLabels(){const w=cvs.clientWidth,h=cvs.clientHeight;const st=stats();let html="";const v=new THREE.Vector3();
+ if(S.cut)for(let s=0;s<cables.length;s++){const cb=cables[s];for(const nd of cb.nodes){v.copy(nd.nd.position);v.project(cam);if(v.z>1)continue;const x=(v.x+1)/2*w,y=(1-v.y)/2*h;const j=Math.floor(nd.zz/G.dz),c=j*G.NX+cb.i;if(!G.G[c])continue;const T=G.T[c];
+  html+=`<div class="lbl ${T-st.Tm>3?"hot":""}" style="left:${x}px;top:${y}px">${T.toFixed(1)}</div>`}
+  v.set(cb.x,FLOOR+S.Hw+.4,.05).project(cam);html+=`<div class="lbl big" style="left:${(v.x+1)/2*w-14}px;top:${(1-v.y)/2*h}px">C${s+1}</div>`}
+ const ge=geom();v.set(ge.R+1.8,1.7,0).project(cam);if(v.z<1)html+=`<div class="lbl big" style="left:${(v.x+1)/2*w}px;top:${(1-v.y)/2*h}px">Ventilador ${SIM.fanOn?"encendido":"apagado"}</div>`;
+ labels.innerHTML=html}
+</script>
+<script>
+"use strict";
+/* =====================================================================
+   11. INTERFAZ
+   ===================================================================== */
+const $=id=>document.getElementById(id);
+const TABS=[["casos","Casos"],["lote","Producto"],["bio","Factores bióticos"],["abio","Factores abióticos"],["silo","Silo"],["aire","Aireación"],["clima","Clima"],["mon","Monitoreo"],["calc","Cálculos"],["guia","Guía"]];
+let TAB="casos";
+function tabs(){$("tabs").innerHTML=TABS.map(([k,n])=>`<button data-k="${k}" class="${k===TAB?"on":""}">${n}</button>`).join("");$("tabs").querySelectorAll("button").forEach(b=>b.onclick=()=>{TAB=b.dataset.k;tabs();panel()})}
+const rowR=(id,lab,min,max,st,val,fmt)=>`<div class="row"><label for="${id}">${lab}</label><input type="range" id="${id}" min="${min}" max="${max}" step="${st}" value="${val}"><output id="${id}o">${fmt(val)}</output></div>`;
+const rowS=(id,lab,opts,val)=>`<div class="row"><label for="${id}">${lab}</label><select id="${id}">${opts.map(([v,n])=>`<option value="${v}" ${v==val?"selected":""}>${n}</option>`).join("")}</select></div>`;
+function bindR(id,fmt,fn,rb){const e=$(id);if(!e)return;e.oninput=()=>{const v=parseFloat(e.value);$(id+"o").textContent=fmt(v);fn(v);if(rb==="full")resetSim(false);else if(rb==="geo")resetSim(true);else if(rb==="flow"){solveForced()}refreshInfo()}}
+function bindS(id,fn,rb){const e=$(id);if(!e)return;e.onchange=()=>{fn(e.value);if(rb==="full")resetSim(false);else if(rb==="geo")resetSim(true);else if(rb==="flow")solveForced();panel();refreshInfo()}}
+const f1=v=>(+v).toFixed(1),f0=v=>(+v).toFixed(0),f2=v=>(+v).toFixed(2),pc=v=>(v*100).toFixed(0)+" %";
+const SCEN=[
+ {k:"s1",t:"1 · Maíz húmedo en Neiva, sin aireación",d:"Tres camiones de maíz al 16–18 % ingresan calientes. Sin aireación. ¿Cuándo aparece el punto caliente? ¿Qué detecta primero: la termometría o el CO₂?",set:{grain:"maiz",lots:[[17,32],[18,33],[16,31]],clim:"neiva",mode:"off",pest:"sito",infLoc:"none",fung:"media",view:"T"}},
+ {k:"s2",t:"2 · El mismo maíz con controlador ΔT + EMC",d:"El ventilador solo enciende si el aire está ≥ 4 °C más frío que el grano y no lo rehumedece. ¿Cuánto tiempo gana y cuánto cuesta en kWh?",set:{grain:"maiz",lots:[[17,32],[18,33],[16,31]],clim:"neiva",mode:"emc",Qt:.15,pest:"sito",infLoc:"none",fung:"media",view:"T"}},
+ {k:"s3",t:"3 · Arroz paddy sin esparcidor: núcleo de finos",d:"Sin esparcidor los finos quedan bajo la boca de llenado. Observe el aire que esquiva el núcleo y la zona que no se enfría.",set:{grain:"arroz",lots:[[15,31],[15,31],[15,31]],clim:"campo",mode:"cont",Qt:.12,spreader:false,fines:5,pest:"rhyz",infLoc:"none",fung:"baja",view:"V"}},
+ {k:"s4",t:"4 · Trigo importado con residuos infestados en el fondo",d:"El silo no se limpió bien: quedó grano viejo con taladrador menor en el fondo. Trigo seco (12,5 %) en clima de puerto. ¿Hacia dónde migran los insectos?",set:{grain:"trigo",lots:[[12.5,29],[12.5,29],[12.5,29]],clim:"bvent",mode:"off",pest:"rhyz",infLoc:"fondo",infDen:4,fung:"baja",view:"I"}},
+ {k:"s5",t:"5 · Café pergamino en Pitalito: condensación y filtración",d:"Pergamino al 12,5 % en silo metálico; la escotilla filtra agua en las lluvias de la tarde. Observe la superficie y el riesgo de ocratoxina A.",set:{grain:"cafe",lots:[[12.5,26],[12.5,26],[12.5,26]],clim:"pital",mode:"off",pest:"arae",infLoc:"sup",infDen:.5,fung:"media",leak:true,view:"real",D:6,Hw:8}},
+ {k:"s6",t:"6 · Soya con enfriamiento artificial",d:"El enfriador entrega aire a 16 °C y 65 % HR. Compare temperatura, insectos y kWh con la aireación nocturna.",set:{grain:"soya",lots:[[12,31],[12,31],[12,31]],clim:"espinal",mode:"chill",Qt:.08,pest:"trib",infLoc:"sup",infDen:1,fung:"baja",view:"T"}}
+];
+function setClim(id){const c=CLIM[id];Object.assign(S.clim,{id,Tm:c.Tm,Ta:c.Ta,RH:c.RH,alt:c.alt,rain:c.rain})}
+function applyScen(sc){const s=sc.set;S.grain=s.grain;S.lots=s.lots.map(([M,T])=>({M,T}));S.pest=s.pest;S.infLoc=s.infLoc;S.infDen=s.infDen||2;S.fung=s.fung;S.spreader=s.spreader!==false;S.fines=s.fines||2;S.leak=!!s.leak;S.floorBlock=0;
+ S.D=s.D||11;S.Hw=s.Hw||16;S.fill=.86;S.peak=false;S.aer.mode=s.mode;S.aer.duct="piso";if(s.Qt)S.aer.Qt=s.Qt;setClim(s.clim);S.view=s.view||"T";resetSim(true);toolbar();panel();fitCamera("corte")}
+function panel(){const g=GR[S.grain],a=S.aer,c=S.clim;let h="";
+ if(TAB==="casos")h=`<div class="sec"><h3>Casos aplicados</h3><p class="note">Cargue un caso, presione ▶ Simular y discuta las preguntas en grupo. Cada caso reinicia el silo.</p>${SCEN.map(s=>`<div class="scen" data-k="${s.k}"><b>${s.t}</b><p>${s.d}</p></div>`).join("")}</div>`;
+ if(TAB==="lote")h=`<div class="sec"><h3>Producto almacenado</h3>${rowS("gr","Grano",Object.entries(GR).map(([k,v])=>[k,v.n]),S.grain)}
+  <div class="kv"><span>Densidad aparente</span><b>${g.rho} kg/m³</b><span>Porosidad</span><b>${g.por.toFixed(2)}</b><span>Ángulo de reposo</span><b>${g.rep}°</b><span>Fricción grano-pared μ</span><b>${g.mu}</b><span>Calor específico</span><b>${g.c0} + ${g.c1}·M kJ/kg·K</b><span>Conductividad térmica</span><b>${g.k} W/m·K</b><span>Humedad segura</span><b>${g.Ms} % b.h.</b></div>
+  <p class="note">${g.src}. Propiedades típicas para docencia.</p></div>`;
+ if(TAB==="abio"){h=`<div class="sec"><h3>Recibo del grano (abióticos)</h3><p class="note">El silo se llena con tres camiones (lotes) que forman capas. Cada lote llega con su propia humedad y temperatura.</p>
+  ${[2,1,0].map(k=>`<div class="lot"><b>Lote ${k+1}<br><small>${["fondo","medio","superior"][k]}</small></b><div><input type="range" id="lm${k}" min="9" max="24" step=".1" value="${S.lots[k].M}"><span id="lm${k}o">${S.lots[k].M.toFixed(1)} % b.h.</span></div><div><input type="range" id="lt${k}" min="15" max="42" step=".5" value="${S.lots[k].T}"><span id="lt${k}o">${S.lots[k].T.toFixed(1)} °C</span></div></div>`).join("")}
+  ${rowR("he","Variación dentro del lote (± pts)",0,3,.1,S.het,f1)}
+  <h4>Calidad física</h4>${rowR("dm","Granos con daño mecánico (%)",0,60,1,S.dmg,f0)}${rowR("fi","Impurezas y finos (%)",0,10,.5,S.fines,f1)}
+  ${rowS("spr","Llenado",[["1","Con esparcidor (finos distribuidos)"],["0","Sin esparcidor: núcleo de finos bajo la boca"]],S.spreader?"1":"0")}
+  <h4>Estructura y entorno</h4>${rowS("lk","Escotilla del techo",[["0","Hermética"],["1","Filtra agua cuando llueve"]],S.leak?"1":"0")}${S.leak?rowR("lr","Filtración por hora de lluvia (L)",2,80,1,S.leakRate,f0):""}
+  ${rowR("fb","Piso perforado tapado por finos (%)",0,.7,.05,S.floorBlock,pc)}${rowS("sw","Sol sobre pared y techo",[["1","Lámina expuesta al sol"],["0","Sin radiación (sombra)"]],S.sunW?"1":"0")}
+  <p class="note">Con la herramienta «Bolsillo húmedo» de la barra inferior puede descargar en un punto grano de un camión mal secado; con «Finos» y «Costra», crear zonas de baja permeabilidad.</p></div>`}
+ if(TAB==="bio"){const p=PL[S.pest];h=`<div class="sec"><h3>Insectos</h3>${rowS("pe","Especie",Object.entries(PL).map(([k,v])=>[k,v.n]),S.pest)}
+  ${rowS("il","Foco inicial",[["none","Sin infestación"],["sup","Capa superior (entra por la escotilla)"],["fondo","Fondo: residuos de la cosecha anterior"],["lote","Distribuida: llegó con el grano"]],S.infLoc)}
+  ${rowR("id","Densidad inicial (insectos/kg)",.1,20,.1,S.infDen,f1)}
+  <p class="note">Desarrollo entre ${p.Tlo} y ${p.Thi} °C, óptimo ≈ ${p.Top} °C; necesita humedad del grano > ${p.Mlo} %. Los insectos producen calor y agua metabólica y migran hacia las zonas tibias. Se dibujan ampliados para que sean visibles.</p>
+  <h3>Hongos</h3>${rowS("fu","Carga fúngica inicial",Object.entries(FUNG).map(([k,v])=>[k,v.n]),S.fung)}
+  <p class="note">Acorta el tiempo hasta 0,5 % de pérdida de materia seca (factor ${FUNG[S.fung].f}) y aumenta el riesgo de micotoxinas. Micotoxinas de interés para ${g.n.toLowerCase()}: ${g.tox.map(k=>TOX[k].n).join("; ")}.</p>
+  <h3>Ácaros</h3><p class="note">Proliferan con aw ≥ 0,70 y temperaturas moderadas; el simulador marca las zonas donde esa condición se sostiene.</p>
+  <h3>Control</h3><button class="btn" id="bFum">Fumigar con fosfina (silo sellado)</button> <button class="btn ocre" id="bTrans">Transilar</button> <button class="btn sec" id="bDescor">Descorazonar</button>
+  <p class="note">Fosfina: −99 % de insectos vivos; exige hermeticidad, personal certificado y tiempo de exposición según temperatura. Transilar mezcla y enfría ≈ 3 °C. Descorazonar extrae el cono central de finos.</p></div>`}
+ if(TAB==="silo"){h=`<div class="sec"><h3>Dimensiones</h3>${rowR("dd","Diámetro (m)",3,30,.1,S.D,f1)}${rowR("hh","Altura de pared (m)",3,32,.1,S.Hw,f1)}${rowR("fl","Llenado de la pared",.2,1,.01,S.fill,pc)}
+  ${rowS("pk","Superficie del grano",[["0","Nivelada"],["1","En pico (ángulo de reposo)"]],S.peak?"1":"0")}<div class="kv" id="siloInfo"></div>
+  <p class="note">Silo metálico corrugado de fondo plano, piso perforado sobre plenum, techo cónico de 25° con ventila y escotilla, tres cables de termometría (C1–C3). La persona mide 1,75 m.</p></div>`}
+ if(TAB==="aire"){h=`<div class="sec"><h3>Sistema de aireación</h3>${rowS("dc","Distribución del aire",[["piso","Piso perforado completo"],["central","Ducto semicircular central"],["lateral","Dos ductos laterales"]],a.duct)}
+  ${rowR("qt","Caudal específico (m³/min·t)",.02,.5,.01,a.Qt,f2)}${rowR("pkf","Factor de compactación (Shedd)",1,2.5,.05,S.pack,f2)}${rowR("eta","Eficiencia del ventilador",.3,.8,.01,a.eta,f2)}
+  <h3>Estrategia de control</h3>${rowS("md","Modo",[["off","Apagado"],["cont","Continuo"],["night","Horario nocturno"],["thermo","Termostático (ΔT)"],["emc","Controlador ΔT + EMC"],["chill","Aire refrigerado (enfriador)"]],a.mode)}
+  ${a.mode==="night"?rowR("h1","Enciende (h)",0,23,1,a.h1,f0)+rowR("h2","Apaga (h)",0,23,1,a.h2,f0):""}${a.mode==="thermo"||a.mode==="emc"?rowR("dt","ΔT grano − aire (°C)",1,10,.5,a.dT,f1):""}${a.mode==="emc"?rowR("tl","Tolerancia EMC (pts)",0,3,.1,a.tol,f1):""}
+  ${a.mode==="chill"?rowR("ct","T del aire enfriado (°C)",8,22,.5,a.chT,f1)+rowR("ch","HR del aire enfriado",.5,.85,.01,a.chRH,pc):""}${rowR("pr","Tarifa de energía (COP/kWh)",300,1500,10,a.price,f0)}
+  <div class="kv" id="aerInfo"></div><p class="note">Caída de presión del grano: Shedd (ASAE D272) × factor de compactación, más la pérdida del piso o ducto. El campo de flujo se resuelve con Darcy no lineal en el corte.</p></div>`}
+ if(TAB==="clima")h=`<div class="sec"><h3>Clima del sitio</h3>${rowS("cl","Localidad",Object.entries(CLIM).map(([k,v])=>[k,v.n]),c.id)}
+  ${rowR("tm","T media (°C)",5,32,.1,c.Tm,f1)}${rowR("ta","Amplitud diaria (± °C)",1,10,.1,c.Ta,f1)}${rowR("rh","HR media a T media (%)",30,95,1,c.RH,f0)}${rowR("rn","Días con lluvia de tarde",0,1,.05,c.rain,pc)}${rowR("al","Altitud (m)",0,3000,10,c.alt,f0)}
+  ${rowS("nz","Variación día a día",[["1","Sí"],["0","No (día tipo)"]],c.noise?"1":"0")}<div class="kv" id="psyInfo"></div>
+  <p class="note">Valores climáticos típicos aproximados; para diseño use series horarias del IDEAM. La razón de humedad cambia poco en el día: por eso la HR sube de noche.</p></div>`;
+ if(TAB==="mon")h=`<div class="sec"><h3>Indicadores</h3><div class="kpis" id="kpis"></div><h3>Alertas</h3><div id="alerts"></div>
+  <h3>Muestreo con calador</h3><p class="note">Elija «Calar» en la barra inferior del silo y toque un punto del corte o de la superficie. La muestra incluye el error del determinador de humedad (± 0,3 pts) y el conteo de insectos en 1 kg tamizado.</p>
+  ${SIM.samples.map(s=>`<div class="sample">${sampleHTML(s)}</div>`).join("")||'<p class="note">Aún no hay muestras.</p>'}<button class="btn sec" id="bCSV">Copiar serie (CSV)</button> <span class="note" id="csvMsg"></span></div>`;
+ if(TAB==="calc")h=`<div class="sec calc" id="calcBox"></div>`;
+ if(TAB==="guia")h=`<div class="sec"><h3>Cómo usar SiloGest</h3><ol style="font-size:12.5px;line-height:1.55;padding-left:18px">
+  <li>Elija un caso o configure el producto, los factores bióticos y abióticos, el silo, la aireación y el clima.</li><li>Gire la vista arrastrando, acerque con la rueda o con dos dedos y desplace con clic derecho. Los botones de cámara llevan al corte, al exterior, a la superficie y al ventilador.</li>
+  <li>Cambie la capa: vista real del grano, termografía, humedad, aw, pérdida de materia seca, insectos, micotoxinas o flujo de aire.</li><li>Presione ▶ Simular. La franja ocre de la gráfica marca las horas de ventilador; la azul, las lluvias.</li>
+  <li>Use las herramientas: inspeccionar, calar, foco de insectos, bolsillo húmedo, finos, costra y limpiar.</li><li>Verifique a mano en «Cálculos».</li></ol>
+  <h3>Modelo</h3><p class="note">Corte vertical por el diámetro, extendido a 3D por simetría axial. Flujo de aire: Darcy no lineal con Shedd y convección natural por flotación. Intercambio aire–grano en equilibrio local (Chung-Pfost modificada, ASABE D245.6). Respiración: CO₂ de Saul y Steele con multiplicadores de Thompson (1972), aplicados a otros granos con la humedad de maíz de igual aw. Calor: 10,7 kJ/g CO₂. Insectos: crecimiento logístico dependiente de T y humedad, con migración hacia zonas cálidas. Micotoxinas y ácaros: índices cualitativos. Resultados orientativos para la discusión en clase.</p>
+  <h3>Referencias</h3><p class="note">Thompson, T. L. (1972). Trans. ASAE 15(2):333–337. doi:10.13031/2013.37900 · Bern, Steele y Morey (2002). Appl. Eng. Agric. 18(6):703–706. doi:10.13031/2013.11325 · Mannaa y Kim (2017). Mycobiology 45(4):240–254. doi:10.5941/MYCO.2017.45.4.240 · Magan y Aldred (2007). Int. J. Food Microbiol. 119:131–139. doi:10.1016/j.ijfoodmicro.2007.07.034 · ASABE D245.6 · ASAE D272 · Shedd (1953) Agric. Eng. 34(9):616–619.</p>
+  <h3>Créditos</h3><p class="note">SiloGest · versión ${APP_VERSION}. Docente: D. Sc. Jaime Daniel Bustos Vanegas, Programa de Ingeniería Agroindustrial, Universidad Surcolombiana. © 2026 Universidad Surcolombiana. Todos los derechos reservados. Visualización 3D con three.js (licencia MIT).</p></div>`;
+ $("panel").innerHTML=h;
+ document.querySelectorAll(".scen").forEach(e=>e.onclick=()=>applyScen(SCEN.find(s=>s.k===e.dataset.k)));
+ bindS("gr",v=>{S.grain=v;const M=GR[v].M0;S.lots=S.lots.map(l=>({M,T:l.T}));S.pest=GR[v].plaga},"geo");
+ for(let k=0;k<3;k++){const m=$("lm"+k),t=$("lt"+k);if(m){m.oninput=()=>{S.lots[k].M=+m.value;$("lm"+k+"o").textContent=(+m.value).toFixed(1)+" % b.h.";resetSim(false);refreshInfo()};t.oninput=()=>{S.lots[k].T=+t.value;$("lt"+k+"o").textContent=(+t.value).toFixed(1)+" °C";resetSim(false);refreshInfo()}}}
+ bindR("he",f1,v=>S.het=v,"full");bindR("dm",f0,v=>S.dmg=v,"full");bindR("fi",f1,v=>S.fines=v,"full");bindS("spr",v=>S.spreader=v==="1","full");
+ bindS("lk",v=>S.leak=v==="1");bindR("lr",f0,v=>S.leakRate=v);bindR("fb",pc,v=>{S.floorBlock=v;setInlet()},"flow");bindS("sw",v=>S.sunW=v==="1");
+ bindS("pe",v=>{S.pest=v;insMesh.material.color.set(PL[v].col)},"full");bindS("il",v=>S.infLoc=v,"full");bindR("id",f1,v=>S.infDen=v,"full");bindS("fu",v=>S.fung=v);
+ bindR("dd",f1,v=>S.D=v,"geo");bindR("hh",f1,v=>S.Hw=v,"geo");bindR("fl",pc,v=>S.fill=v,"geo");bindS("pk",v=>S.peak=v==="1","geo");
+ bindS("dc",v=>{S.aer.duct=v;setInlet();buildScene();paintGrain()},"flow");bindR("qt",f2,v=>S.aer.Qt=v,"flow");bindR("pkf",f2,v=>S.pack=v,"flow");bindR("eta",f2,v=>S.aer.eta=v);
+ bindS("md",v=>S.aer.mode=v);bindR("h1",f0,v=>S.aer.h1=v);bindR("h2",f0,v=>S.aer.h2=v);bindR("dt",f1,v=>S.aer.dT=v);bindR("tl",f1,v=>S.aer.tol=v);bindR("ct",f1,v=>S.aer.chT=v);bindR("ch",pc,v=>S.aer.chRH=v);bindR("pr",f0,v=>S.aer.price=v);
+ bindS("cl",v=>setClim(v));const cu=()=>S.clim.id="custom";bindR("tm",f1,v=>{S.clim.Tm=v;cu()});bindR("ta",f1,v=>{S.clim.Ta=v;cu()});bindR("rh",f0,v=>{S.clim.RH=v;cu()});bindR("rn",pc,v=>{S.clim.rain=v;cu()});bindR("al",f0,v=>{S.clim.alt=v;PATM=101325*Math.pow(1-2.25577e-5*v,5.25588)});bindS("nz",v=>S.clim.noise=v==="1");
+ if($("bFum"))$("bFum").onclick=()=>{for(let c=0;c<G.n;c++)G.N[c]*=.01;paintGrain();refreshInfo()};if($("bTrans"))$("bTrans").onclick=transilar;if($("bDescor"))$("bDescor").onclick=descorazonar;
+ if($("bCSV"))$("bCSV").onclick=csv;refreshInfo()}
+function coolFrontH(){const g=GR[S.grain],ge=geom();return ge.Heq/(1.13*1.006*G.u0/(g.rho*cpG(g,S.lots[1].M)))/3600}
+function refreshInfo(){const g=GR[S.grain],ge=geom(),s=stats(),wx=SIM.wx||weather(SIM.t);
+ if($("siloInfo"))$("siloInfo").innerHTML=`<span>Volumen de grano</span><b>${ge.V.toFixed(0)} m³</b><span>Masa almacenada</span><b>${ge.mass.toFixed(0)} t</b><span>Capacidad (lleno + cono)</span><b>${ge.cap.toFixed(0)} t</b><span>Relación H/D</span><b>${(S.Hw/S.D).toFixed(2)}</b><span>Área de piso</span><b>${ge.A.toFixed(1)} m²</b>`;
+ if($("aerInfo")){const dP=G.pS+plenumLoss();$("aerInfo").innerHTML=`<span>Caudal total</span><b>${(G.Qm3s*60).toFixed(0)} m³/min</b><span>Velocidad superficial</span><b>${(G.u0*1000).toFixed(1)} mm/s</b><span>Presión estática total</span><b>${dP.toFixed(0)} Pa</b><span>Potencia al eje</span><b>${(G.Qm3s*dP/S.aer.eta/1000).toFixed(2)} kW</b><span>Calentamiento por ventilador</span><b>${(dP/(1.13*1006)/S.aer.eta*.9).toFixed(2)} °C</b><span>Frente de enfriamiento</span><b>≈ ${coolFrontH().toFixed(0)} h</b>`}
+ if($("psyInfo"))$("psyInfo").innerHTML=`<span>Presión atmosférica</span><b>${(PATM/1000).toFixed(1)} kPa</b><span>Aire ahora</span><b>${wx.T.toFixed(1)} °C · ${(wx.RH*100).toFixed(0)} %${wx.rain?" · lluvia":""}</b><span>Razón de humedad</span><b>${(wx.w*1000).toFixed(2)} g/kg a.s.</b><span>Entalpía</span><b>${hof(wx.T,wx.w).toFixed(1)} kJ/kg a.s.</b><span>Punto de rocío</span><b>${Tdew(wx.w).toFixed(1)} °C</b><span>EMC del grano con este aire</span><b>${EMC(g,wx.T,wx.RH).toFixed(1)} % b.h.</b>`;
+ if($("kpis")){const days=shelfDays(g,s.Tm,s.Mm,S.dmg);$("kpis").innerHTML=[["Masa almacenada",ge.mass.toFixed(0),"t"],["T media / máxima",s.Tm.toFixed(1)+" / "+s.Tmax.toFixed(1),"°C"],["Humedad media",s.Mm.toFixed(1),"% b.h."],["aw media",s.aw.toFixed(3),""],["CO₂ espacio de cabeza",SIM.co2.toFixed(0),"ppm"],["Pérdida de MS media",s.DML.toFixed(3),"%"],["Masa > 0,5 % de pérdida",s.f05.toFixed(1),"%"],["Insectos vivos (total)",(s.Ntot/1e6).toFixed(2),"millones"],["Insectos máx.",s.Nmax.toFixed(1),"ins/kg"],["Riesgo de micotoxinas",s.risk.toFixed(1),"% masa"],["Tiempo seguro restante*",days>999?">999":days.toFixed(0),"días"],["Horas de ventilador",SIM.fanH.toFixed(0),"h"],["Energía / costo",SIM.kWh.toFixed(0)+" kWh","$"+(SIM.kWh*S.aer.price/1000).toFixed(0)+" mil"],["Condensado / filtrado",SIM.cond.toFixed(0)+" / "+SIM.leakL.toFixed(0),"kg"]].map(([l,v,u])=>`<div class="kpi"><div class="l">${l}</div><div class="v">${v} <small>${u}</small></div></div>`).join("")+`<p class="note" style="grid-column:1/3">* Thompson (1972) a la T y humedad medias actuales.</p>`;
+  $("alerts").innerHTML=alerts().map(([k,t])=>`<div class="alert ${k}">${t}</div>`).join("")}
+ if($("calcBox"))$("calcBox").innerHTML=calcHTML();
+ const d=Math.floor(SIM.t/24),hh=String(Math.floor(SIM.t%24)).padStart(2,"0");
+ $("clockOv").innerHTML=`Día ${d} · ${hh}:00${wx.rain?" · 🌧":""}<br>Aire ${wx.T.toFixed(1)} °C · ${(wx.RH*100).toFixed(0)} % HR<br>Grano ${s.Tm.toFixed(1)} °C · ${s.Mm.toFixed(1)} %`;
+ $("status").textContent=`${S.cut?"Corte":"Exterior"} · ${GR[S.grain].n} · ${ge.mass.toFixed(0)} t · ventilador ${SIM.fanOn?"encendido":"apagado"}`}
+function calcHTML(){const g=GR[S.grain],ge=geom(),s=stats(),wx=SIM.wx||weather(SIM.t);const k=(1-Math.sin(g.rep*Math.PI/180))/(1+Math.sin(g.rep*Math.PI/180)),Rh=S.D/4,z=ge.Heq;const ph=g.rho*9.81*Rh/g.mu*(1-Math.exp(-g.mu*k*z/Rh)),pv=ph/k;
+ const u=G.u0,dPL=g.a*u*u/Math.log(1+g.b*u),dP=dPL*ge.Heq*S.pack+plenumLoss(),P=G.Qm3s*dP/S.aer.eta/1000,cg=cpG(g,s.Mm);const aw=ERH(g,s.Tm,s.Mm),Mc=EMC(GR.maiz,s.Tm,aw),f=MT(s.Tm,Mc)*MM(Mc)*MD(S.dmg)/FUNG[S.fung].f;const q=(CO2(1/f)-CO2(0))*10.61*(1-s.Mm/100);
+ return`<h3>1. Dimensionamiento</h3><div class="eq">V = (π D²/4)·H<sub>g</sub>${S.peak?" + (π D²/4)·h<sub>c</sub>/3":""} = ${ge.V.toFixed(1)} m³ ; m = ρ<sub>b</sub>·V = <span class="res">${ge.mass.toFixed(1)} t</span></div>
+ <h3>2. Presiones de Janssen (fondo)</h3><div class="eq">k = (1 − sen φ)/(1 + sen φ) = ${k.toFixed(3)} ; R<sub>h</sub> = D/4 = ${Rh.toFixed(2)} m</div><div class="eq">p<sub>h</sub> = (ρ g R<sub>h</sub>/μ)[1 − e<sup>−μkz/R<sub>h</sub></sup>] = <span class="res">${(ph/1000).toFixed(1)} kPa</span> ; p<sub>v</sub> = ${(pv/1000).toFixed(1)} kPa (ρgz = ${(g.rho*9.81*z/1000).toFixed(1)} kPa)</div>
+ <h3>3. Ventilador</h3><div class="eq">Q = ${S.aer.Qt.toFixed(2)} × ${ge.mass.toFixed(0)} = ${(G.Qm3s*60).toFixed(0)} m³/min ; u = Q/A = ${(u*1000).toFixed(1)} mm/s</div><div class="eq">ΔP/L = a u²/ln(1+bu) = ${dPL.toFixed(1)} Pa/m ; ΔP = ${dPL.toFixed(1)}×${ge.Heq.toFixed(2)}×${S.pack} + ${plenumLoss()} = <span class="res">${dP.toFixed(0)} Pa</span></div><div class="eq">P = QΔP/η = <span class="res">${P.toFixed(2)} kW</span></div><p class="note">El corte 2D resuelve ${G.pS.toFixed(0)} Pa en el grano (distribución y obstrucciones).</p>
+ <h3>4. Frente de enfriamiento</h3><div class="eq">v<sub>f</sub> ≈ ρ<sub>a</sub>c<sub>a</sub>u/(ρ<sub>b</sub>c<sub>g</sub>) → t = H/v<sub>f</sub> ≈ <span class="res">${coolFrontH().toFixed(0)} h</span></div>
+ <h3>5. Aire actual</h3><div class="eq">P = ${(PATM/1000).toFixed(1)} kPa ; W = ${(wx.w*1000).toFixed(2)} g/kg ; h = ${hof(wx.T,wx.w).toFixed(1)} kJ/kg ; T<sub>r</sub> = ${Tdew(wx.w).toFixed(1)} °C ; EMC = ${EMC(g,wx.T,wx.RH).toFixed(1)} %</div>
+ <h3>6. Equilibrio y deterioro</h3><div class="eq">aw (${s.Tm.toFixed(1)} °C, ${s.Mm.toFixed(1)} %) = <span class="res">${aw.toFixed(3)}</span></div><div class="eq">M<sub>T</sub> = ${MT(s.Tm,Mc).toFixed(3)} · M<sub>M</sub> = ${MM(Mc).toFixed(2)} · M<sub>D</sub> = ${MD(S.dmg).toFixed(2)} ÷ carga fúngica ${FUNG[S.fung].f}</div><div class="eq">t<sub>0,5 %</sub> = 230 h × ${f.toFixed(2)} = <span class="res">${(TH05*f/24).toFixed(1)} días</span></div><div class="eq">Calentamiento adiabático ≈ ${(q*24/cg).toFixed(2)} °C/día (${(q*1000/3.6).toFixed(1)} W/t)</div>`}
+function transilar(){let sT=0,sX=0,cnt=0;for(let c=0;c<G.n;c++)if(G.G[c]){sT+=G.T[c];sX+=G.X[c];cnt++}for(let c=0;c<G.n;c++)if(G.G[c]){G.T[c]=sT/cnt-3;G.X[c]=sX/cnt;G.N[c]*=.4;G.km[c]=1}solveForced();solveNatural();paintGrain();refreshInfo()}
+function descorazonar(){let rem=0;const tgt=.05*geom().Heq*S.D;for(let i=Math.round(G.NX*.42);i<Math.round(G.NX*.58);i++)for(let j=G.NZ-1;j>=0&&rem<tgt/((Math.round(G.NX*.58)-Math.round(G.NX*.42)))*1;j--){const c=j*G.NX+i;if(G.G[c]){G.G[c]=0;rem+=G.dx*G.dz}}
+ for(let c=0;c<G.n;c++)if(G.G[c]&&G.km[c]<1)G.km[c]=Math.min(1,G.km[c]*1.8);solveForced();solveNatural();buildGrainGeom();paintGrain();refreshInfo()}
+function csv(){let s="hora,dia,T_aire_C,T_media_C,T_max_C,M_media_pct,M_max_pct,perdida_MS_pct,insectos_kg_medio,insectos_kg_max,CO2_ppm,ventilador,lluvia,energia_kWh,condensado_kg\n";
+ for(const d of SIM.hist)s+=[d.t,(d.t/24).toFixed(2),d.Ta.toFixed(2),d.Tm.toFixed(2),d.Tx.toFixed(2),d.Mm.toFixed(2),d.Mx.toFixed(2),d.DML.toFixed(4),d.N.toFixed(3),d.Nx.toFixed(2),d.co2.toFixed(0),d.fan,d.rain,d.kWh.toFixed(2),d.cond.toFixed(2)].join(",")+"\n";
+ const done=ok=>{$("csvMsg").textContent=ok?"Copiado al portapapeles":"No se pudo copiar"};
+ try{const b=new Blob(["﻿"+s],{type:"text/csv"});const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download=`SiloGest_${S.grain}_${Math.floor(SIM.t/24)}d.csv`;a.click()}catch(e){}
+ if(navigator.clipboard)navigator.clipboard.writeText(s).then(()=>done(true),()=>done(false))}
+function toolbar(){const L=[["real","Vista real"],["T","Termografía"],["M","Humedad"],["A","aw"],["D","Pérdida MS"],["I","Insectos"],["X","Micotoxinas"],["V","Flujo de aire"]];
+ $("ovLayer").innerHTML=L.map(([k,n])=>`<span class="chip ${S.view===k?"on":""}" data-l="${k}">${n}</span>`).join("");
+ $("ovCam").innerHTML=[["corte","Corte"],["detalle","Detalle del grano"],["arriba","Superficie"],["exterior","Exterior"],["vent","Ventilador"]].map(([k,n])=>`<span class="chip ${camPreset===k?"on":""}" data-c="${k}">${n}</span>`).join("")+`<span class="chip ${S.showAir?"on":""}" data-a="1">Partículas de aire</span>`;
+ const T=[["insp","🔍 Inspeccionar"],["calar","🧪 Calar"],["ins","🐞 Foco de insectos"],["hum","💧 Bolsillo húmedo"],["fin","▦ Finos"],["cos","▩ Costra"],["clr","⌫ Limpiar"]];
+ $("ovTool").innerHTML=T.map(([k,n])=>`<span class="chip t ${S.tool===k?"on":""}" data-t="${k}">${n}</span>`).join("");
+ document.querySelectorAll("[data-l]").forEach(e=>e.onclick=()=>{S.view=e.dataset.l;toolbar();paintGrain()});
+ document.querySelectorAll("[data-c]").forEach(e=>e.onclick=()=>{fitCamera(e.dataset.c);toolbar()});
+ document.querySelectorAll("[data-a]").forEach(e=>e.onclick=()=>{S.showAir=!S.showAir;toolbar()});
+ document.querySelectorAll("[data-t]").forEach(e=>e.onclick=()=>{S.tool=e.dataset.t;toolbar()})}
+function drawLegend(){const L=LAY[S.view];const lc=$("legC").getContext("2d");
+ if(S.view==="real"){$("legT").textContent="Vista real del grano";const g=GR[S.grain];const st=[[0,g.col.map(v=>v*255)],[.33,g.col.map(v=>v*165)],[.66,[150,160,135]],[1,[95,110,90]]];for(let x=0;x<190;x++){const c=stops(st,x/189);lc.fillStyle=`rgb(${c[0]|0},${c[1]|0},${c[2]|0})`;lc.fillRect(x,0,1,10)}$("legMin").textContent="sano";$("legMid").textContent="húmedo";$("legMax").textContent="con moho";return}
+ const[a,b]=L.rng();$("legT").textContent=`${L.n} (${L.u})`;for(let x=0;x<190;x++){const c=L.map(x/189);lc.fillStyle=`rgb(${c[0]|0},${c[1]|0},${c[2]|0})`;lc.fillRect(x,0,1,10)}
+ const f=v=>Math.abs(b-a)<5?v.toFixed(2):v.toFixed(0);$("legMin").textContent=f(a);$("legMid").textContent=f((a+b)/2);$("legMax").textContent=f(b)}
+/* ---------- gráfica */
+function drawChart(){const ch=$("chart"),c=ch.getContext("2d");const DPR=Math.min(2,window.devicePixelRatio||1);const w=ch.clientWidth,h=ch.clientHeight;if(ch.width!==w*DPR){ch.width=w*DPR;ch.height=h*DPR}c.setTransform(DPR,0,0,DPR,0,0);c.clearRect(0,0,w,h);
+ const H=SIM.hist,sel=$("chartSel").value;c.font="11px Inter,system-ui,sans-serif";if(H.length<2){c.fillStyle="#71695E";c.fillText("Inicie la simulación para ver la evolución en el tiempo.",14,h/2);return}
+ const pl=46,pr=50,pt=28,pb=22,t0=H[0].t,t1=H[H.length-1].t,XX=t=>pl+(t-t0)/(t1-t0||1)*(w-pl-pr);let s1=[],s2=[],y1="",y2="";
+ if(sel==="T"){s1=[["T aire","#A69C8C",d=>d.Ta],["T media del grano","#B9862E",d=>d.Tm],["T máxima del grano","#6D1B2B",d=>d.Tx]];y1="°C"}
+ if(sel==="M"){s1=[["Humedad media","#2166AC",d=>d.Mm],["Humedad máxima","#0b3d91",d=>d.Mx]];s2=[["Pérdida de MS media","#6D1B2B",d=>d.DML]];y1="% b.h.";y2="% MS"}
+ if(sel==="C"){s1=[["CO₂ espacio de cabeza","#4B7A52",d=>d.co2]];y1="ppm"}
+ if(sel==="I"){s1=[["Insectos/kg medio","#6d4c41",d=>d.N],["Insectos/kg máx.","#3e2723",d=>d.Nx]];y1="ins/kg"}
+ if(sel==="F"){s1=[["Energía acumulada","#6D1B2B",d=>d.kWh]];s2=[["Condensado","#2166AC",d=>d.cond]];y1="kWh";y2="kg"}
+ const rng=s=>{let a=1e9,b=-1e9;for(const[,,f]of s)for(const d of H){const v=f(d);if(v<a)a=v;if(v>b)b=v}if(b-a<1e-6){b+=1;a-=1}const p=(b-a)*.08;return[a-p,b+p]};const[a1,b1]=rng(s1),YY=v=>h-pb-(v-a1)/(b1-a1)*(h-pt-pb);
+ for(let k=1;k<H.length;k++){const x=XX(H[k-1].t),ww=Math.max(1,XX(H[k].t)-x);if(H[k].fan){c.fillStyle="rgba(185,134,46,.18)";c.fillRect(x,pt,ww,h-pt-pb)}if(H[k].rain){c.fillStyle="rgba(33,102,172,.22)";c.fillRect(x,h-pb-5,ww,5)}}
+ c.strokeStyle="#EFE9DC";c.fillStyle="#71695E";for(let k=0;k<=4;k++){const v=a1+(b1-a1)*k/4,y=YY(v);c.beginPath();c.moveTo(pl,y);c.lineTo(w-pr,y);c.stroke();c.fillText(v.toFixed(Math.abs(b1-a1)<5?2:Math.abs(b1-a1)>500?0:1),4,y+4)}c.fillText(y1,4,pt-10);
+ const days=(t1-t0)/24,sd=days>60?10:days>20?5:days>6?1:.25;for(let d=Math.ceil(t0/24/sd)*sd;d*24<=t1;d+=sd)c.fillText(sd<1?(d*24).toFixed(0)+" h":"d"+d.toFixed(0),XX(d*24)-8,h-6);
+ const line=(s,YF)=>{for(const[,col,f]of s){c.strokeStyle=col;c.lineWidth=1.8;c.beginPath();H.forEach((d,k)=>{const x=XX(d.t),y=YF(f(d));k?c.lineTo(x,y):c.moveTo(x,y)});c.stroke()}};line(s1,YY);
+ let lx=pl;const leg=s=>{for(const[n,col]of s){c.fillStyle=col;c.fillRect(lx,9,12,3);c.fillStyle="#2A2521";c.fillText(n,lx+15,13);lx+=c.measureText(n).width+28}};leg(s1);
+ if(s2.length){const[a2,b2]=rng(s2),Y2=v=>h-pb-(v-a2)/(b2-a2)*(h-pt-pb);c.setLineDash([5,3]);line(s2,Y2);c.setLineDash([]);c.fillStyle="#71695E";for(let k=0;k<=4;k++){const v=a2+(b2-a2)*k/4;c.fillText(v.toFixed(2),w-pr+4,Y2(v)+4)}c.fillText(y2,w-pr+4,pt-10);leg(s2)}}
+/* =====================================================================
+   12. BUCLE
+   ===================================================================== */
+let lastRec=0;
+function resetSim(geo){lastRec=0;const run=SIM.run;SIM={t:0,run,hist:[],fanOn:false,fanH:0,kWh:0,cond:0,leakL:0,lastNat:-99,seed:7,co2:420,samples:[]};build();SIM.wx=weather(0);record();if(geo||!siloGrp)buildScene();else{buildGrainGeom();insMesh.material.color.set(PL[S.pest].col)}paintGrain();updateLight();drawChart()}
+function resize(){const w=cvs.clientWidth,h=cvs.clientHeight;R3.setSize(w,h,false);cam.aspect=w/h;cam.updateProjectionMatrix();drawChart()}
+let acc=0,lastT=performance.now(),lastInfo=0,lastPaint=0;
+function loop(now){const dtR=Math.min(.1,(now-lastT)/1000);lastT=now;
+ if(SIM.run){acc+=dtR*parseFloat($("speed").value);let n=0;while(acc>=.5&&n<80){step(.5);acc-=.5;n++;if(SIM.t-lastRec>=1){record();lastRec=SIM.t}}if(n>=80)acc=0;
+  if(now-lastPaint>350){paintGrain();updateLight();lastPaint=now}if(now-lastInfo>500){refreshInfo();drawChart();lastInfo=now}}
+ if(fanBlades)fanBlades.rotation.x+=SIM.fanOn?.45:0;animAir();animInsects(now/1000);animDrops(now/1000);updLabels();R3.render(scene,cam);requestAnimationFrame(loop)}
+$("bPlay").onclick=()=>{SIM.run=!SIM.run;$("bPlay").textContent=SIM.run?"❚❚ Pausa":"▶ Simular"};
+$("bStep").onclick=()=>{for(let k=0;k<48;k++){step(.5);if(SIM.t-lastRec>=1){record();lastRec=SIM.t}}paintGrain();updateLight();refreshInfo();drawChart()};
+$("bReset").onclick=()=>{resetSim(false);refreshInfo()};
+$("chartSel").onchange=drawChart;window.addEventListener("resize",resize);
+let defP=null;window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();defP=e;$("btnInstall").style.display="inline-block"});
+$("btnInstall").onclick=async()=>{if(defP){defP.prompt();await defP.userChoice;defP=null;$("btnInstall").style.display="none"}};
+if("serviceWorker"in navigator&&location.protocol==="https:")navigator.serviceWorker.register("sw.js").catch(()=>{});
+$("ver").textContent="versión "+APP_VERSION;
+setClim("neiva");tabs();resetSim(true);toolbar();panel();resize();fitCamera("corte");toolbar();$("loading").style.display="none";requestAnimationFrame(loop);
+window.__SG={S,get SIM(){return SIM},step,stats,geom,applyScen,SCEN,paintGrain,fitCamera,R3,scene,cam,G:()=>G,toolbar,panel,setTab:k=>{TAB=k;tabs();panel()},updateLight,refreshInfo,drawChart,record};
+</script>
+</body>
+</html>
